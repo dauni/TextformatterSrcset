@@ -48,7 +48,8 @@ class TextformatterSrcset extends Textformatter implements ConfigurableModule {
 			'title' => 'Srcset Image Textformatter',
 			'version' => 101,
 			'summary' => "Adds the srcset to images within a textarea",
-			'author' => 'Conclurer GbR'
+			'author' => 'Conclurer GbR',
+			'icon' => 'picture-o'
 		);
 	}
 
@@ -142,7 +143,6 @@ class TextformatterSrcset extends Textformatter implements ConfigurableModule {
 		if (!empty($data['wh_attr'])) $wh_attrInput->checked = 1;
 		$wrapper->add($wh_attrInput);
 
-
 		$data_attrInput = wire('modules')->get('InputfieldCheckbox');
 		$data_attrInput->name = 'data_attr';
 		$data_attrInput->columnWidth = 33;
@@ -154,7 +154,7 @@ class TextformatterSrcset extends Textformatter implements ConfigurableModule {
 		$ll_attrInput = wire('modules')->get('InputfieldCheckbox');
 		$ll_attrInput->name = 'll_attr';
 		$ll_attrInput->columnWidth = 34;
-		$ll_attrInput->label = __('Use Lazysizes JS-plugin');
+		$ll_attrInput->label = __('Use Lazysizes 5.2.0 JS-plugin');
 		$ll_attrInput->description = __('Activate to add Lazy loading. Forces data* attributes to be activated. Includes lazysizes.min.js. Adds the class "lazyload"');
 		if (!empty($data['ll_attr'])) $ll_attrInput->checked = $data_attrInput->checked = 1;
 		$wrapper->add($ll_attrInput);
@@ -498,7 +498,9 @@ class TextformatterSrcset extends Textformatter implements ConfigurableModule {
 				}
 				if ($addon)
 					$new .= $addon;
-				$new .= "<img {$attribute}src='{$src}' data-sizes='{$this->sizes}' {$wh_attr} alt='{$meta['alt']}' title='{$meta['quelle']}' {$class}/>";
+				$ds = ($this->sizes ? "data-sizes='{$this->sizes}' " : "");
+				$alt = ($meta['alt'] ? "alt='{$meta['alt']}'" : "");
+				$new .= "<img {$attribute}src='{$src}' {$ds}{$wh_attr} {$alt} title='{$meta['quelle']}' {$class}/>";
 				$new .= "</picture>";
 
 
