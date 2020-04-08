@@ -307,15 +307,13 @@ class TextformatterSrcset extends Textformatter implements ConfigurableModule {
 						$data['Caption'] = isset($iptc["2#120"][0]) ? $iptc["2#120"][0] : null;
 						$data['CaptionWriter'] = isset($iptc["2#122"][0]) ? $iptc["2#122"][0] : null;
 					}
-					$meta['autor'] = $data['AuthorByline']; //Author
-					$meta['credits'] = $data['Source']; //Credits
-					$meta['copyright'] = $data['Copyright']; //Copyright
-					if ($meta['copyright'])
-						$meta['quelle'] = $meta['copyright'];
-					elseif ($meta['credits'])
-						$meta['quelle'] = $meta['credits'];
-					elseif ($meta['autor'])
-						$meta['quelle'] = $meta['autor'];
+
+					if (isset($data['Copyright'])) //Copyright
+						$meta['quelle'] = $data['Copyright'];
+					elseif (isset($data['Source'])) //Credits
+						$meta['quelle'] = $data['Source'];
+					elseif (isset($data['AuthorByline'])) //Author
+						$meta['quelle'] = $data['AuthorByline'];
 
 				}
 
