@@ -91,7 +91,7 @@ class TextformatterSrcsetConfig extends \ProcessWire\ModuleConfig
         $f->name = 'wp_attr';
         $f->columnWidth = 34;
         $f->label = $this->_('Add Webp-Version');
-        $f->description = $this->_('Activate to add a Webp-version to each variation (since processwire 3.0.132). Activates art direction.');
+        $f->description = $this->_('Activate to add a Webp-version to each variation (since processwire 3.0.132). Requires art direction.');
         $inputfields->add($f);
 
         $f = $this->modules->get('InputfieldCheckbox');

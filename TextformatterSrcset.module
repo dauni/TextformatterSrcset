@@ -3,6 +3,10 @@
 class TextformatterSrcset extends Textformatter implements Module
 {
 
+    //https://stackoverflow.com/questions/44440161/specifying-both-image-size-and-pixel-density-in-srcset
+    //https://blog.kulturbanause.de/2014/09/responsive-images-srcset-sizes-adaptive/
+    //https://addyosmani.com/blog/lazy-loading/
+    //https://html.spec.whatwg.org/multipage/embedded-content.html#attr-img-srcset
 
     /**
      * Module information
@@ -14,9 +18,9 @@ class TextformatterSrcset extends Textformatter implements Module
     {
         return array(
             'title' => 'Srcset Image Textformatter',
-            'version' => 103,
+            'version' => 104,
             'summary' => "Adds the srcset to images within a textarea",
-            'author' => 'Conclurer GbR',
+            'author' => 'Conclurer GbR, Daniel',
             'icon' => 'picture-o',
             'requires' => array('ProcessWire>=3.0.0')
         );
