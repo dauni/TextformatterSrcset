@@ -2,7 +2,7 @@
  
 This is a Textformatter for the [ProcessWire CMS](http://www.processwire.com). It will add the [srcset](http://responsiveimages.org) and sizes attributes to every `img` tag inside a field. This enables your site to make better use of responsive/adaptive images even when they were created by a regular editor inside e.g. a Textarea. 
  
-The formatter requires ProcessWire 2.5+. It will generate lots of different image variations that might fill up your storage. _Use it on your own risk._
+The formatter requires ProcessWire 3.0+. It will generate lots of different image variations that might fill up your storage. _Use it on your own risk._
 
  
 ## Features
@@ -36,20 +36,16 @@ Example with those three values and sizes set to “auto”:
 ```
  
  
-This does depend on the orientation of the image. The longer side of the image will be resized to fit to the value.
- 
 ### Sizes-Attribute
 This field will directly populate the sizes attribute of the image tag.  You might want to leave the default value “auto” or set it to the maximum width in pixel that images will be displayed.
  
-### Generate HiDPI images
-This will create an image for high density displays (“retina”). As long as the original image is larger than the target image, it will create an image with the twice the resolution of the source. This will be added as an additional size to the  `srcset `, so you don’t need to specify this image in the Resolutions tab. When no resolutions are set, it will use the  `1x,2x `notation for the srcset.
+### DPR switching generates HiDPI images
+This will create an image for high density displays (“retina”). As long as the original image is larger than the target image, it will create an image with the twice the resolution of the source. This will be added as an additional size to the  `srcset `, it will use the  `1x,2x `notation for the srcset and you cannot combine it with sizes, so they will be ignored if not using art direction with picture tag.
  
 Example without Resolutions:
 ```html
 <img  alt="" src="/site/assets/files/1013/desert.993x0-is.jpg" sizes="" srcset="/site/assets/files/1013/desert.993x0-is.jpg 1x, /site/assets/files/1013/desert.1986x0.jpg 2x"/>
 ```
- 
-It is recommended to activate this feature.
  
 ### Low-quality Placeholder
 When active, the Formatter will create a really low quality image (small resolutions, low JPG setting) and use it as the default  `src `.  This can speed up the page. This is recommended if you have a Javascript-Fallback active that will exchange the LQP with the right image in browsers that don’t support  `srcset ` yet. Remember that the  `src ` is always a fallback for older browser/no JS browser and will always be loaded by every browser.
@@ -83,8 +79,8 @@ These examples can be quickly implemented.
 
 #### Use different resolutions for different screens
 1. Enter each breakpoint in Pixels into the Resolutions field. Example: 300,720,1000
-2. Activate the HiDPI option
-2. Place the polyfill [respimage.js](https://github.com/aFarkas/respimage) on your page. 
+~~2. Activate the HiDPI option~~
+~~2. Place the polyfill [respimage.js](https://github.com/aFarkas/respimage) on your page.~~ 
 3. (Optional) Activate the Low-quality Placeholder option
 
  

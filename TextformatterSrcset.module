@@ -250,22 +250,24 @@ class TextformatterSrcset extends Textformatter implements Module
                         if ($this->wp_attr)
                             if ($this->config->version('3.0.132'))
                                 if ($new_image->hasWebp) {
+                                    $dpr = $new_image->webp->url;
                                     if ($this->dpr) {
-                                        $dpr = $this->get_dpr($parent, $meta, $new_image->webp, $options);
+                                        $dpr = implode(', ', $this->get_dpr($parent, $meta, $new_image->webp, $options));
                                     }
                                     $picture->src = $new_image->webp->url;
-                                    $picture->dpr = implode(', ', $dpr);
+                                    $picture->dpr = $dpr;
                                     $picture->media = $medias[$num];
                                     $picture->border = $borders[$num];
                                     $picture->type = $this->config->fileContentTypes($new_image->webp->ext);
                                     $smedia[] = $picture;
                                 }
+                        $dpr = $new_image->url;
                         if ($this->dpr) {
-                            $dpr = $this->get_dpr($parent, $meta, $new_image, $options);
+                            $dpr = implode(', ', $this->get_dpr($parent, $meta, $new_image, $options));
                         }
                         $picture = new \stdClass();
                         $picture->src = $new_image->url;
-                        $picture->dpr = implode(', ', $dpr);
+                        $picture->dpr = $dpr;
                         $picture->media = $medias[$num];
                         $picture->border = $borders[$num];
                         $picture->type = $this->config->fileContentTypes($new_image->ext);
