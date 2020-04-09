@@ -1,26 +1,11 @@
-<?php
+<?php namespace ProcessWire;
 
 class TextformatterSrcset extends Textformatter implements Module {
 
-	/**
-	 * Module settings
-	 *
-	 */
-
-
-	protected $data = array();
-
-	/**
-	 * Set all settings to data
-	 *
-	 */
-
-	public function __construct() {
-		$this->data = $this->getDefaults();
-	} // module data
 
 	/**
 	 * Module information
+	 * https://processwire.com/api/ref/module/
 	 *
 	 */
 
@@ -30,28 +15,12 @@ class TextformatterSrcset extends Textformatter implements Module {
 			'version' => 103,
 			'summary' => "Adds the srcset to images within a textarea",
 			'author' => 'Conclurer GbR',
-			'icon' => 'picture-o'
+			'icon' => 'picture-o',
+			'requires' => array('ProcessWire>=3.0.0')
 		);
 	}
 
 
-	/**
-	 * Get data by key
-	 *
-	 */
-
-	public function __get($key) {
-		return isset($this->data[$key]) ? $this->data[$key] : null;
-	}
-
-	/**
-	 * Set data at given key
-	 *
-	 */
-
-	public function __set($key, $value) {
-		$this->data[$key] = $value;
-	}
 
 	public function formatValue(Page $page, Field $field, &$str) {
 		//Get all image tags from the $str and place them in $images
@@ -278,10 +247,10 @@ class TextformatterSrcset extends Textformatter implements Module {
 								$new_image = $image->size(0, $size, $options);
 							}
 							$srcset[] = "{$new_image->url} {$new_image->width}w";
-							$picture = new stdClass();
+							$picture = new \stdClass();
 							//Zuerst webp und dann das normale - because browser takes first source which meets criteria defined in media
 							if ($this->wp_attr)
-								if ($config->version('3.0.132'))
+								if ($this->config->version('3.0.132'))
 									if ($new_image->hasWebp) {
 										$picture->src = $new_image->webp->url;
 										$picture->media = $medias[$num];
@@ -289,7 +258,7 @@ class TextformatterSrcset extends Textformatter implements Module {
 										$picture->type = wire('config')->fileContentTypes($new_image->webp->ext);
 										$smedia[] = $picture;
 									}
-							$picture = new stdClass();
+							$picture = new \stdClass();
 							$picture->src = $new_image->url;
 							$picture->media = $medias[$num];
 							$picture->border = $borders[$num];
@@ -395,7 +364,7 @@ class TextformatterSrcset extends Textformatter implements Module {
 			} else {
 				//Wenn das Originalbild kleiner ist, als die Responsive-Varianten, soll es unberührt bleiben, da es vermutlich im Text positioniert ist.
 				$new = $original;
-				if ($this->wp_attr) if ($config->version('3.0.132')) {
+				if ($this->wp_attr) if ($this->config->version('3.0.132')) {
 					//generate a WEBP-Version (since processwire 3.0.132)
 					//https://processwire.com/blog/posts/webp-images-in-pw/
 					if ($image) {
