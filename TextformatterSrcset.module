@@ -1,390 +1,378 @@
 <?php namespace ProcessWire;
 
-class TextformatterSrcset extends Textformatter implements Module {
+class TextformatterSrcset extends Textformatter implements Module
+{
 
 
-	/**
-	 * Module information
-	 * https://processwire.com/api/ref/module/
-	 *
-	 */
+    /**
+     * Module information
+     * https://processwire.com/api/ref/module/
+     *
+     */
 
-	public static function getModuleInfo() {
-		return array(
-			'title' => 'Srcset Image Textformatter',
-			'version' => 103,
-			'summary' => "Adds the srcset to images within a textarea",
-			'author' => 'Conclurer GbR',
-			'icon' => 'picture-o',
-			'requires' => array('ProcessWire>=3.0.0')
-		);
-	}
-
-
-
-	public function formatValue(Page $page, Field $field, &$str) {
-		//Get all image tags from the $str and place them in $images
-		if (!preg_match_all('/<img[^>]+>/i', $str, $images)) return;
-		#$images = $images[0];
-		#echo "Bilder: "; var_dump($images);
-		//#todo What happens if this is only 1 image?
-
-		//Setup...
-		$matches = array();
-		$fileLocation = $this->wire("config")->urls->files;
-		$sizes = array_map('intval', array_filter(explode(',', $this->resolutions), 'is_numeric'));
-		#sort($sizes);
-		$medias = array_map('intval', array_filter(explode(',', $this->medias), 'is_numeric'));
-		#sort($medias);
-		$borders = explode(',', $this->borders);
-		#var_dump($sizes);
-		$options = array('upscaling' => false, 'cropping' => true, 'webpAdd' => true, 'webpQuality' => 75);
-		$options_low = array('upscaling' => true, 'cropping' => true, 'quality' => floor($this->wire("config")->imageSizerOptions['quality'] * 0.33), 'webpAdd' => true, 'webpQuality' => 65);
-		#var_dump($this->wire('page')->images);
-
-		$p = $this->wire('page');
-		//Looping through all images
-		foreach ($images[0] as $original) {
-
-			//Building our new image string
-			$new = '';
-			$meta = array();
-			$meta['pw_align'] = "";
-			$meta['alt'] = "";
-			$meta['source'] = "";
-			$meta['width'] = 0;
-			$meta['height'] = 0;
-
-			$attribute = $strappend = '';
-			if ($this->data_attr) {
-				$attribute = "data-";
-			}
-			if ($this->ll_attr) {
-				$this->class = trim(str_replace('lazyload', '', $this->class) . ' lazyload');
-				$strappend = '<script src="' . $this->wire('config')->urls->$this . 'lazysizes.min.js' . '" async></script>';
-			}
-
-			/**
-			 * The following code was taken and modified from Martijn Geerts and the TextformatterImageInterceptor module.
-			 */
-			//Get the PageImage from our image
-			if (strpos($original, $fileLocation)) {
-				#var_dump($original);
-				//Find source image
-				preg_match_all('/src=["|\'](.*?)["|\']/i', $original, $array);
-				#echo "Bilder: ";
-				#var_dump($array);
-				if (!$array[1]) continue;
-				$meta['source'] = $array[1][0]; // original
-
-				// ProcessWire alignment done with a class
-				preg_match_all('/class="(.*?)"/i', $original, $array);
-				#var_dump($array);
-				$meta['pw_align'] = isset($array[1][0]) ? $array[1][0] : null; // original
-
-				//Get alt tag if it exists
-				preg_match_all('/alt="(.*?)"/i', $original, $array);
-				$meta['alt'] = isset($array[1][0]) ? $array[1][0] : null;
-
-				// example: 1023/image-name.100x100.jpg
-				$string = str_replace($fileLocation, "", $meta['source']);
-				// create array
-				$array = explode("/", $string);
-				#echo "Pfadelemente {$string}:"; var_dump($array);
-				#echo "Page: ".$this->wire('page')->id;
-				// id of page where where image belongs to
-				$meta['id'] = $array[0];
-				// refering to to page where the image lives - if it is not the current page.
-				if ($meta['id'] != $p->id)
-					$p = $this->wire("pages")->get($meta['id']);
-
-				// raw image variation name
-				$variationName = $array[1];
-				#echo $variationName;
-				#echo $fileLocation.$variationName;
-
-				#$i = 0;
-				if ($p->images)
-					foreach ($p->images as $imvar) {
-						#$pagebilder[$p->id][++$i][] = $imvar->name;
-						if ($variationName == $imvar->name) {
-							$item = $imvar;
-							break;
-						} else {
-							foreach ($imvar->getVariations() as $var) {
-								#$pagebilder[$p->id][$i][] = $var->name;
-								if ($variationName == $var->name) {
-									$item = $var;
-									break;
-								}
-							}
-						}
-					}
-				else break;
+    public static function getModuleInfo()
+    {
+        return array(
+            'title' => 'Srcset Image Textformatter',
+            'version' => 103,
+            'summary' => "Adds the srcset to images within a textarea",
+            'author' => 'Conclurer GbR',
+            'icon' => 'picture-o',
+            'requires' => array('ProcessWire>=3.0.0')
+        );
+    }
 
 
-				//Original File
-				if ($item->isVariation($variationName)) {
-					$parent = $item->getOriginal();
-				} else {
-					$parent = $item;
-				}
+    public function formatValue(Page $page, Field $field, &$str)
+    {
+        //Get all image tags from the $str and place them in $images
+        if (!preg_match_all('/<img[^>]+>/i', $str, $images)) return;
+        #$images = $images[0];
+        #echo "Bilder: "; var_dump($images);
 
-				#var_dump($item);
-				#var_dump($item->getOriginal());
-				getimagesize($parent->filename, $info);
-				$data = [];
-				$meta['quelle'] = 'Baufuchs';
-				if (array_key_exists('APP13', $info)) {
-					$iptc = iptcparse($info['APP13']);
-					//See https://github.com/Intervention/image/blob/master/src/Intervention/Image/Commands/IptcCommand.php
-					if (is_array($iptc)) {
-						$data['DocumentTitle'] = isset($iptc["2#005"][0]) ? $iptc["2#005"][0] : null;
-						$data['Urgency'] = isset($iptc["2#010"][0]) ? $iptc["2#010"][0] : null;
-						$data['Category'] = isset($iptc["2#015"][0]) ? $iptc["2#015"][0] : null;
-						$data['Subcategories'] = isset($iptc["2#020"][0]) ? $iptc["2#020"][0] : null;
-						$data['Keywords'] = isset($iptc["2#025"][0]) ? $iptc["2#025"] : null;
-						$data['SpecialInstructions'] = isset($iptc["2#040"][0]) ? $iptc["2#040"][0] : null;
-						$data['CreationDate'] = isset($iptc["2#055"][0]) ? $iptc["2#055"][0] : null;
-						$data['CreationTime'] = isset($iptc["2#060"][0]) ? $iptc["2#060"][0] : null;
-						$data['AuthorByline'] = isset($iptc["2#080"][0]) ? $iptc["2#080"][0] : null;
-						$data['AuthorTitle'] = isset($iptc["2#085"][0]) ? $iptc["2#085"][0] : null;
-						$data['City'] = isset($iptc["2#090"][0]) ? $iptc["2#090"][0] : null;
-						$data['SubLocation'] = isset($iptc["2#092"][0]) ? $iptc["2#092"][0] : null;
-						$data['State'] = isset($iptc["2#095"][0]) ? $iptc["2#095"][0] : null;
-						$data['Country'] = isset($iptc["2#101"][0]) ? $iptc["2#101"][0] : null;
-						$data['OTR'] = isset($iptc["2#103"][0]) ? $iptc["2#103"][0] : null;
-						$data['Headline'] = isset($iptc["2#105"][0]) ? $iptc["2#105"][0] : null;
-						$data['Source'] = isset($iptc["2#110"][0]) ? $iptc["2#110"][0] : null;
-						$data['PhotoSource'] = isset($iptc["2#115"][0]) ? $iptc["2#115"][0] : null;
-						$data['Copyright'] = isset($iptc["2#116"][0]) ? $iptc["2#116"][0] : null;
-						$data['Caption'] = isset($iptc["2#120"][0]) ? $iptc["2#120"][0] : null;
-						$data['CaptionWriter'] = isset($iptc["2#122"][0]) ? $iptc["2#122"][0] : null;
-					}
+        //Setup...
+        $matches = array();
+        $fileLocation = $this->config->urls->files;
+        #var_dump($this->resolutions);
+        $sizes = array_map('intval', array_filter(explode(',', $this->resolutions), 'is_numeric'));
+        #sort($sizes);
+        $medias = array_map('intval', array_filter(explode(',', $this->medias), 'is_numeric'));
+        #sort($medias);
+        $borders = explode(',', $this->borders);
+        #var_dump($sizes);
+        $options = array('upscaling' => false, 'cropping' => true);
+        $options_low = array('upscaling' => true, 'cropping' => true, 'quality' => floor($this->config->imageSizerOptions['quality'] * 0.33));
 
-					if (isset($data['Copyright'])) //Copyright
-						$meta['quelle'] = $data['Copyright'];
-					elseif (isset($data['Source'])) //Credits
-						$meta['quelle'] = $data['Source'];
-					elseif (isset($data['AuthorByline'])) //Author
-						$meta['quelle'] = $data['AuthorByline'];
-
-				}
+        if ($this->wp_attr && $this->config->version('3.0.132')) {
+            $options = array('upscaling' => false, 'cropping' => true, 'webpAdd' => true, 'webpQuality' => 75);
+            $options_low = array('upscaling' => true, 'cropping' => true, 'quality' => floor($this->config->imageSizerOptions['quality'] * 0.33), 'webpAdd' => true, 'webpQuality' => 65);
+        }
 
 
-				// basename of image.
-				//$imageName = preg_replace("/\d+x\d+\./i","", $variationName);
-				#$tmp1 = explode('.', $variationName);
-				#$meta['imageName'] = $tmp1[0];
-				#$meta['ext'] = $tmp1[count($tmp1) - 1];
-				$meta['imageName'] = $item->name;
-				$meta['ext'] = $item->ext;
+        $p = $this->page;
+        //Looping through all images
+        foreach ($images[0] as $original) {
 
-				//Thanks to Horst Nogajski for the following snippet
-				/*foreach ($p->fields as $field) {
-					if (!(bool)($field->type instanceof FieldtypeImage)) continue; // if no images field, go on
+            //Building our new image string
+            $new = '';
+            $meta = array();
+            $meta['pw_align'] = "";
+            $meta['alt'] = "";
+            $meta['source'] = "";
+            $meta['width'] = 0;
+            $meta['height'] = 0;
+            $attribute = $strappend = '';
 
-					// find the field that holds the image
-					if (!$p->get($field->name)->has('name=' . $meta['imageName'] . '.' . $meta['ext'])) continue;
+            if ($this->data_attr) {
+                $attribute = "data-";
+            }
+            if ($this->ll_attr) {
+                $this->class = trim(str_replace('lazyload', '', $this->class) . ' lazyload');
+                $strappend = '<script src="' . $this->config->urls->$this . 'lazysizes.min.js' . '" async></script>';
+            }
 
-					$image = $p->get($field->name)->get('name=' . $meta['imageName'] . '.' . $meta['ext']);
-				}*/
-				$image = $item;
-				#echo "String: " . $string;
-				//Get image size #todo use regex here
-				/*$array = explode(".", $string);
-				$array = substr($array[count($array) - 2], 0, -3); //Get the image tag and remove everything. results in e.g. 720x201
-				$array = explode("x", $array);
-				var_dump($array);
-				if (count($array) == 2) //Shitty filtering in case it is the original image
-					$meta['width'] = (int)$array[0];
-				else
-					$meta['width'] = $image->width;
-				$meta['height'] = (int)$array[1]; //Height is set to always 0 by PW*/
-				$meta['width'] = $item->width();
-				$meta['height'] = $item->height();
-			} else {
-				//Nothing found
-				break;
-			}
-			//$image is now our PageImage, $p the page of the Image
+            /**
+             * The following code was taken and modified from Martijn Geerts and the TextformatterImageInterceptor module.
+             */
+            //Get the PageImage from our image
+            if (strpos($original, $fileLocation)) {
+                #var_dump($original);
+                //Find source image
+                preg_match_all('/src=["|\'](.*?)["|\']/i', $original, $array);
+                #echo "Bilder: ";
+                #var_dump($array);
+                if (!$array[1]) continue;
+                $meta['source'] = $array[1][0]; // original
 
-			/**
-			 * Build the srcset
-			 */
+                // ProcessWire alignment done with a class
+                preg_match_all('/class="(.*?)"/i', $original, $array);
+                #var_dump($array);
+                $meta['pw_align'] = isset($array[1][0]) ? $array[1][0] : null; // original
 
-			$srcset = array();
-			$smedia = array();
-			$addon = '';
+                //Get alt tag if it exists
+                preg_match_all('/alt="(.*?)"/i', $original, $array);
+                $meta['alt'] = isset($array[1][0]) ? $array[1][0] : null;
 
-			//When no sizes are set
-			if (empty($sizes)) {
-				#$srcset[] = "{$meta['source']} 1x";
-				$srcset[] = "{$item->url} 1x";
-				//... and retina is active
-				if ($this->retina) {
-					//And our image is sized (e.g. larger image possible). Then we can provide a better image to HiDPI devices
-					if ($parent->width() > $meta['width']) {
-						//Create retina version
-						$retina_image = $parent->size($meta['width'] * 2, 0, $options);
-						$srcset[] = "{$retina_image->url} 2x";
-					}
-				}
-			} else {
-				//Sizes are set
-				//For every size
-				//Nur bei den "großen" Bildern - für baufuchs
-				if ($meta['width'] > 300) {
-					foreach ($sizes as $num => $size) {
-						//Do we need this size as a source?
-						#if ($size < $meta['width']) {
+                // example: 1023/image-name.100x100.jpg
+                $string = str_replace($fileLocation, "", $meta['source']);
+                // create array
+                $array = explode("/", $string);
+                #echo "Pfadelemente {$string}:"; var_dump($array);
+                #echo "Page: ".$this->wire('page')->id;
+                // id of page where where image belongs to
+                $meta['id'] = $array[0];
+                // refering to to page where the image lives - if it is not the current page.
+                if ($meta['id'] != $p->id)
+                    $p = $this->pages->get($meta['id']);
 
-						//Orientation
-						if ($image) {
-							if ($image->width > $image->height) {
-								$new_image = $image->size($size, 0, $options);
-							} else {
-								$new_image = $image->size(0, $size, $options);
-							}
-							$srcset[] = "{$new_image->url} {$new_image->width}w";
-							$picture = new \stdClass();
-							//Zuerst webp und dann das normale - because browser takes first source which meets criteria defined in media
-							if ($this->wp_attr)
-								if ($this->config->version('3.0.132'))
-									if ($new_image->hasWebp) {
-										$picture->src = $new_image->webp->url;
-										$picture->media = $medias[$num];
-										$picture->border = $borders[$num];
-										$picture->type = wire('config')->fileContentTypes($new_image->webp->ext);
-										$smedia[] = $picture;
-									}
-							$picture = new \stdClass();
-							$picture->src = $new_image->url;
-							$picture->media = $medias[$num];
-							$picture->border = $borders[$num];
-							$picture->type = wire('config')->fileContentTypes($new_image->ext);
-							$smedia[] = $picture;
-						}
-					}
+                // raw image variation name
+                $variationName = $array[1];
+                #echo $variationName;
+                #echo $fileLocation.$variationName;
 
-				}
-				//If HiDPI is enabled
-				if ($this->retina) {
-					if ($parent->width() >= $meta['width']) {
-						//Create retina version
-						$retina_image = $parent->size($meta['width'] * 2, 0, $options);
-					} else {
-						//Use the largest image
-						$retina_image = $image;
-					}
-					$srcset[] = "{$retina_image->url} {$retina_image->width}w";
-
-					$addon .= '<source ' . $attribute . 'src="' . $retina_image->url . ' 2x, ' . $image->url . ' 1x" />';
-				}
-
-				//Remove the last comma
-				#$srcset = substr($srcset, 0, -1);
-
-			}
-			$srcset = implode(',', $srcset);
-			/**
-			 * Build the src
-			 */
-			$src = $meta['source'];
-
-			if ($this->lqp OR $this->small_source) {
-				//Should we use the smallest image from the sizes?
-				if ($this->small_source && !empty($sizes)) {
-					//Orientation
-					if ($image->width > $image->height) {
-						$src_image = $image->size($sizes[0], 0, $options);
-					} else {
-						$src_image = $image->size(0, $sizes[0], $options);
-					}
-				} //Or do we really use a LQ image? Note, the 300 size is fixed here
-				else {
-					$new_size = floor($image->width * 0.2);
-					$src_image = $image->size($new_size, 0, $options_low);
-				}
-				$src = $src_image->url;
-			}
+                #$i = 0;
+                // first check if a pageimagename corresponds to $variationName,
+                // second check all pageimagevariations for $variationName
+                // if the pages does not have images, break the loop
+                if ($p->images)
+                    foreach ($p->images as $imvar) {
+                        #$pagebilder[$p->id][++$i][] = $imvar->name;
+                        if ($variationName == $imvar->name) {
+                            $item = $imvar;
+                            break;
+                        } else {
+                            foreach ($imvar->getVariations() as $var) {
+                                #$pagebilder[$p->id][$i][] = $var->name;
+                                if ($variationName == $var->name) {
+                                    $item = $var;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                else break;
 
 
-			/**
-			 * Finally, Build the <img>
-			 */
+                //Original File
+                if ($item->isVariation($variationName)) {
+                    $parent = $item->getOriginal();
+                } else {
+                    $parent = $item;
+                }
 
-			$wh_attr = '';
-			$class = '';
+                #var_dump($item);
+                #var_dump($item->getOriginal());
+
+                //Get copyright-information from IPTC-Tags and add them to the title
+                getimagesize($parent->filename, $info);
+                $data = [];
+                $meta['quelle'] = 'Baufuchs';
+                if (array_key_exists('APP13', $info)) {
+                    $iptc = iptcparse($info['APP13']);
+                    //See https://github.com/Intervention/image/blob/master/src/Intervention/Image/Commands/IptcCommand.php
+                    if (is_array($iptc)) {
+                        $data['DocumentTitle'] = isset($iptc["2#005"][0]) ? $iptc["2#005"][0] : null;
+                        $data['Urgency'] = isset($iptc["2#010"][0]) ? $iptc["2#010"][0] : null;
+                        $data['Category'] = isset($iptc["2#015"][0]) ? $iptc["2#015"][0] : null;
+                        $data['Subcategories'] = isset($iptc["2#020"][0]) ? $iptc["2#020"][0] : null;
+                        $data['Keywords'] = isset($iptc["2#025"][0]) ? $iptc["2#025"] : null;
+                        $data['SpecialInstructions'] = isset($iptc["2#040"][0]) ? $iptc["2#040"][0] : null;
+                        $data['CreationDate'] = isset($iptc["2#055"][0]) ? $iptc["2#055"][0] : null;
+                        $data['CreationTime'] = isset($iptc["2#060"][0]) ? $iptc["2#060"][0] : null;
+                        $data['AuthorByline'] = isset($iptc["2#080"][0]) ? $iptc["2#080"][0] : null;
+                        $data['AuthorTitle'] = isset($iptc["2#085"][0]) ? $iptc["2#085"][0] : null;
+                        $data['City'] = isset($iptc["2#090"][0]) ? $iptc["2#090"][0] : null;
+                        $data['SubLocation'] = isset($iptc["2#092"][0]) ? $iptc["2#092"][0] : null;
+                        $data['State'] = isset($iptc["2#095"][0]) ? $iptc["2#095"][0] : null;
+                        $data['Country'] = isset($iptc["2#101"][0]) ? $iptc["2#101"][0] : null;
+                        $data['OTR'] = isset($iptc["2#103"][0]) ? $iptc["2#103"][0] : null;
+                        $data['Headline'] = isset($iptc["2#105"][0]) ? $iptc["2#105"][0] : null;
+                        $data['Source'] = isset($iptc["2#110"][0]) ? $iptc["2#110"][0] : null;
+                        $data['PhotoSource'] = isset($iptc["2#115"][0]) ? $iptc["2#115"][0] : null;
+                        $data['Copyright'] = isset($iptc["2#116"][0]) ? $iptc["2#116"][0] : null;
+                        $data['Caption'] = isset($iptc["2#120"][0]) ? $iptc["2#120"][0] : null;
+                        $data['CaptionWriter'] = isset($iptc["2#122"][0]) ? $iptc["2#122"][0] : null;
+                    }
+
+                    if (isset($data['Copyright'])) //Copyright
+                        $meta['quelle'] = $data['Copyright'];
+                    elseif (isset($data['Source'])) //Credits
+                        $meta['quelle'] = $data['Source'];
+                    elseif (isset($data['AuthorByline'])) //Author
+                        $meta['quelle'] = $data['AuthorByline'];
+
+                }
 
 
-			if ($this->wh_attr) {
-				$tmp_height = $image->size($meta['width'], 0)->height;
-				$wh_attr = " width='{$meta['width']}' height='{$tmp_height}'";
-			}
-
-			if ($meta['pw_align'] != "" OR $this->class != "") {
-				$class = " class='";
-				if ($meta['pw_align'] != "")
-					$class .= " {$meta['pw_align']} ";
-				if ($this->class != '')
-					$class .= " {$this->class}";
-				$class .= "'";
-			}
-
-			if (count($smedia) > 0) {
-				var_dump($smedia);
-
-				$ds = ($this->sizes ? "{$attribute}sizes='{$this->sizes}' " : "");
-				$alt = ($meta['alt'] ? "alt='{$meta['alt']}'" : "");
-
-				if ($this->srcmethod == 'picture') {
-					$new = "<picture>";
-					foreach ($smedia as $med) {
-						$new .= "<source media='(" . $med->border . ":" . $med->media . "px)' {$attribute}srcset='" . $med->src . "' type='$med->type'>";
-					}
-					if ($addon)
-						$new .= $addon;
-
-					$new .= "<img {$attribute}src='{$src}' {$ds}{$wh_attr} {$alt} title='{$meta['quelle']}' {$class}/>";
-					$new .= "</picture>";
-				}
-				if ($this->srcmethod == 'srcset') {
-					$tset = $tsize = array();
-					foreach ($smedia as $med) {
-						$tset[] = "{$med->src} {$med->media}w";
-						$tsize[] = "({$med->border}: {$med->media}px) {$med->media}px";
-					}
-					$tset = implode(', ', $tset);
-					$tsize = implode(', ', $tsize);
-					$new = "<img srcset='{$tset}' {$ds} src='{$src}'>";
-				}
+                // basename of image.
+                $meta['imageName'] = $item->name;
+                $meta['ext'] = $item->ext;
+                $meta['width'] = $item->width();
+                $meta['height'] = $item->height();
+                $image = $item;
+            } else {
+                //Nothing found
+                break;
+            }
 
 
-			} else {
-				//Wenn das Originalbild kleiner ist, als die Responsive-Varianten, soll es unberührt bleiben, da es vermutlich im Text positioniert ist.
-				$new = $original;
-				if ($this->wp_attr) if ($this->config->version('3.0.132')) {
-					//generate a WEBP-Version (since processwire 3.0.132)
-					//https://processwire.com/blog/posts/webp-images-in-pw/
-					if ($image) {
-						$wp = $image->webp();
-						$type = $this->wire('config')->fileContentTypes($wp->ext);
-						$new = "<picture>";
-						$new .= "<source {$attribute}srcset='" . $wp->url . "' type='$type'>";
-						$new .= $addon;
-						$new .= "<img {$attribute}src='{$image->url}' {$attribute}sizes='{$this->sizes}' {$wh_attr} alt='{$meta['alt']}' title='{$meta['quelle']}' {$class} />";
-						$new .= "</picture>";
-					}
-				}
-			}
-			//Add to our new images
-			$matches[] = $new;
+            /**
+             * Build the srcset
+             */
 
-		}
+            $srcset = array();
+            $smedia = array();
+            $addon = '';
 
-		//Replace all Image tags with our new ones and return.
-		$str = str_replace($images[0], $matches, $str) . $strappend;
-		return;
-	}
+            $src = $meta['source'];
+
+            if ($this->lqp OR $this->small_source) {
+                //Should we use the smallest image from the sizes?
+                if ($this->small_source && !empty($sizes)) {
+                    $src_image = $image->width($sizes[0], $options);
+                } //Or do we really use a LQ image?
+                else {
+                    $new_size = floor($image->width * 0.2);
+                    $src_image = $image->width($new_size, $options_low);
+                }
+                $src = $src_image->url;
+                if (!$this->dpr)
+                    $srcset[] = "{$src_image->url} {$src_image->width}w";
+            }
+
+
+            //When no sizes are set
+
+            if (empty($sizes)) {
+                #$srcset[] = "{$meta['source']} 1x";
+                $srcset[] = "{$item->url} 1x";
+                //... and retina is active
+                if ($this->dpr) {
+                    //And our image is sized (e.g. larger image possible). Then we can provide a better image to HiDPI devices
+                    $retina_image = $parent->width($meta['width'] * 2, $options);
+                    $srcset[] = $srcset = $this->get_dpr($parent, $meta, $image, $options);
+                }
+            } else {
+                //Sizes are set
+                //For every size
+                //Nur bei den "großen" Bildern - für baufuchs
+                #if ($meta['width'] > 300) {
+                foreach ($sizes as $num => $size) {
+                    //Do we need this size as a source?
+                    #if ($size < $meta['width']) {
+
+                    //Orientation
+                    if ($image) {
+                        $new_image = $image->width($size, $options);
+                        $srcset[] = "{$new_image->url} {$new_image->width}w";
+                        $picture = new \stdClass();
+                        //First webp - because browser takes first source which meets criteria defined in media
+                        if ($this->wp_attr)
+                            if ($this->config->version('3.0.132'))
+                                if ($new_image->hasWebp) {
+                                    if ($this->dpr) {
+                                        $dpr = $this->get_dpr($parent, $meta, $new_image->webp, $options);
+                                    }
+                                    $picture->src = $new_image->webp->url;
+                                    $picture->dpr = implode(', ', $dpr);
+                                    $picture->media = $medias[$num];
+                                    $picture->border = $borders[$num];
+                                    $picture->type = $this->config->fileContentTypes($new_image->webp->ext);
+                                    $smedia[] = $picture;
+                                }
+                        if ($this->dpr) {
+                            $dpr = $this->get_dpr($parent, $meta, $new_image, $options);
+                        }
+                        $picture = new \stdClass();
+                        $picture->src = $new_image->url;
+                        $picture->dpr = implode(', ', $dpr);
+                        $picture->media = $medias[$num];
+                        $picture->border = $borders[$num];
+                        $picture->type = $this->config->fileContentTypes($new_image->ext);
+                        $smedia[] = $picture;
+                    }
+                }
+
+                #}
+                //If HiDPI is enabled
+                if ($this->dpr) {
+                    $srcset = $this->get_dpr($parent, $meta, $image, $options);
+
+                    #$addon .= '<source ' . $attribute . 'src="' . $retina_image->url . ' 2x, ' . $image->url . ' 1x" />';
+                }
+
+                //Remove the last comma
+                #$srcset = substr($srcset, 0, -1);
+
+            }
+
+
+            /**
+             * Finally, Build the <img>
+             */
+
+            $wh_attr = '';
+            $class = '';
+            $srcset = implode(', ', $srcset);
+
+            if ($this->wh_attr) {
+                $tmp_height = $image->width($meta['width'])->height;
+                $wh_attr = " width='{$meta['width']}' height='{$tmp_height}'";
+            }
+
+            if ($meta['pw_align'] != "" OR $this->class != "") {
+                $class = " class='";
+                if ($meta['pw_align'] != "")
+                    $class .= " {$meta['pw_align']} ";
+                if ($this->class != '')
+                    $class .= " {$this->class}";
+                $class .= "'";
+            }
+
+            if (count($smedia) > 0) {
+                #var_dump($smedia);
+
+                $ds = ($this->sizes ? " {$attribute}sizes='{$this->sizes}' " : "");
+                $alt = ($meta['alt'] ? "alt='{$meta['alt']}'" : "");
+
+                if ($this->srcmethod == 'picture') {
+                    $new = "<picture>";
+                    $i = 0;
+                    foreach ($smedia as $med) {
+                        $new .= "<source media='(" . $med->border . ":" . $med->media . "px)' {$attribute}srcset='" . ($this->dpr ? $med->dpr : $med->src) . "' type='$med->type'>";
+                    }
+                    if ($addon)
+                        $new .= $addon;
+
+                    $new .= "<img {$attribute}src='{$src}' {$wh_attr} {$alt} title='{$meta['quelle']}' {$class}/>";
+                    $new .= "</picture>";
+                }
+                if ($this->srcmethod == 'srcset') {
+                    if ($this->dpr)
+                        $ds = '';
+                    $new = "<img {$attribute}srcset='{$srcset}' {$attribute}src='{$src}'{$ds}{$wh_attr}{$class} {$alt} title='{$meta['quelle']}'>";
+                }
+
+
+            } else {
+                //Wenn das Originalbild kleiner ist, als die Responsive-Varianten, soll es unberührt bleiben, da es vermutlich im Text positioniert ist.
+                die('dieses else macht was?');
+                $new = $original;
+                if ($this->wp_attr) if ($this->config->version('3.0.132')) {
+                    //generate a WEBP-Version (since processwire 3.0.132)
+                    //https://processwire.com/blog/posts/webp-images-in-pw/
+                    if ($image) {
+                        $wp = $image->webp();
+                        $type = $this->config->fileContentTypes($wp->ext);
+                        $new = "<picture>";
+                        $new .= "<source {$attribute}srcset='" . $wp->url . "' type='$type'>";
+                        $new .= $addon;
+                        $new .= "<img {$attribute}src='{$image->url}' {$attribute}sizes='{$this->sizes}' {$wh_attr} alt='{$meta['alt']}' title='{$meta['quelle']}' {$class} />";
+                        $new .= "</picture>";
+                    }
+                }
+            }
+            //Add to our new images
+            $matches[] = $new;
+
+        }
+
+        //Replace all Image tags with our new ones and return.
+        $str = str_replace($images[0], $matches, $str) . $strappend;
+        return;
+    }
+
+    private function get_dpr($parent, $meta, $image, $options)
+    {
+        if ($parent->width() >= $meta['width'] * 2) {
+            $retina_image = $parent->width($meta['width'] * 3, $options);
+            $srcset[] = "{$retina_image->url} 3x";
+        }
+        if ($parent->width() >= $meta['width']) {
+            $retina_image = $parent->width($meta['width'] * 2, $options);
+            $srcset[] = "{$retina_image->url} 2x";
+        }
+        $srcset[] = "{$image->url} 1x";
+        return $srcset;
+    }
 }
