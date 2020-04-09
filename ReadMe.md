@@ -14,7 +14,7 @@ The formatter requires ProcessWire 3.0+. It will generate lots of different imag
 - Configurable to fit your needs
 - Respects all settings from the CKEditor or other ProcessWire modules
  
-![Screenshot Configuration](https://www.conclurer.com/site/assets/files/1133/textformattersrcset-screen.jpg)
+![Screenshot Configuration](https://github.com/dauni/TextformatterSrcset/blob/master/Screenshot_2020-04-09ModuleSrcsetImageTextformatter.png)
 ## Setup
 Please note, that this module only affects fields where the Textformatter ist active. For images outside of the fields, you have to create the markup for srcset images yourself. 
 
