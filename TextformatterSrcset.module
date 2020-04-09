@@ -1,30 +1,13 @@
 <?php
 
-class TextformatterSrcset extends Textformatter implements ConfigurableModule {
+class TextformatterSrcset extends Textformatter implements Module {
 
 	/**
 	 * Module settings
 	 *
 	 */
 
-	protected static $defaultConfigData = array(
 
-		// settings
-		"resolutions" => "350,700", //Only numbers, seperated by comma
-		"medias" => "799,800", //Only numbers, seperated by comma
-		"borders" => "max-width,min-width", //Only numbers, seperated by comma
-		"sizes" => "auto", //What to put into the sizes attribute
-		"retina" => true, //Create an image double the largest image size for HiDPI devices
-		"data_attr" => false, //Add the data-* attributes
-		"wh_attr" => false, //Should we add width and height attributes?
-		"lqp" => true, //Use a low quality placeholder for the src attribute
-		"small_source" => false, //Use the smallest size as a source image instead of a scaled down image
-		"class" => '', //Classes added to the image
-		"ls_attr" => false, //Inlcude automatically lazysizes.js and add corresponding data-attributes
-		"wp_attr" => false //Generate WEBP-Version (Since processwire 3.0.132)
-
-
-	);
 	protected $data = array();
 
 	/**
@@ -33,9 +16,7 @@ class TextformatterSrcset extends Textformatter implements ConfigurableModule {
 	 */
 
 	public function __construct() {
-		foreach (self::$defaultConfigData as $key => $value) {
-			$this->data[$key] = $value;
-		}
+		$this->data = $this->getDefaults();
 	} // module data
 
 	/**
@@ -46,122 +27,13 @@ class TextformatterSrcset extends Textformatter implements ConfigurableModule {
 	public static function getModuleInfo() {
 		return array(
 			'title' => 'Srcset Image Textformatter',
-			'version' => 101,
+			'version' => 103,
 			'summary' => "Adds the srcset to images within a textarea",
 			'author' => 'Conclurer GbR',
 			'icon' => 'picture-o'
 		);
 	}
 
-	/**
-	 * Return an InputfieldsWrapper of Inputfields used to configure the class
-	 *
-	 * @param array $data Array of config values indexed by field name
-	 * @return InputfieldWrapper
-	 *
-	 */
-	public static function getModuleConfigInputfields(array $data) {
-		$data = array_merge(self::$defaultConfigData, $data);
-		$wrapper = new InputfieldWrapper();
-
-		$resolutionsInput = wire('modules')->get('InputfieldText');
-		$resolutionsInput->name = 'resolutions';
-		$resolutionsInput->columnWidth = 33;
-		$resolutionsInput->label = __('Resolutions');
-		$resolutionsInput->description = __('Enter the resolutions (in Pixel) to be created for the srcset. Seperate by comma, leave empty if you do not need multiple sizes.');
-		$resolutionsInput->value = $data['resolutions'];
-		$wrapper->add($resolutionsInput);
-
-		$mediasInput = wire('modules')->get('InputfieldText');
-		$mediasInput->name = 'medias';
-		$mediasInput->columnWidth = 33;
-		$mediasInput->label = __('Medias');
-		$mediasInput->description = __('Enter the medias (in Pixel) to be created for the srcset - corresponding to the image-resolutions. Seperate by comma, leave empty if you do not need multiple sizes.');
-		$mediasInput->value = $data['medias'];
-		$wrapper->add($mediasInput);
-
-		$bordersInput = wire('modules')->get('InputfieldText');
-		$bordersInput->name = 'borders';
-		$bordersInput->columnWidth = 34;
-		$bordersInput->label = __('Borders');
-		$bordersInput->description = __('Enter the borders (min-width/max-width) - corresponding to the image-resolutions and medias. Seperate by comma, leave empty if you do not need multiple sizes.');
-		$bordersInput->value = $data['borders'];
-		$wrapper->add($bordersInput);
-
-		$sizesInput = wire('modules')->get('InputfieldText');
-		$sizesInput->name = 'sizes';
-		$sizesInput->columnWidth = 50;
-		$sizesInput->label = __('Sizes-Attribute');
-		$sizesInput->description = __('Enter the value for the "sizes" attribute. Default is "auto".');
-		$sizesInput->value = $data['sizes'];
-		$wrapper->add($sizesInput);
-
-		$classInput = wire('modules')->get('InputfieldText');
-		$classInput->name = 'class';
-		$classInput->columnWidth = 50;
-		$classInput->label = __('CSS Class');
-		$classInput->description = __('Enter CSS-class names that will be added to each image.');
-		$classInput->value = $data['class'];
-		$wrapper->add($classInput);
-
-		$retinaInput = wire('modules')->get('InputfieldCheckbox');
-		$retinaInput->name = 'retina';
-		$retinaInput->label = __('Generate HiDPI images');
-		$retinaInput->description = __('Activate to create HiDPI images (double resolution). They appear as an additional size.');
-		if (!empty($data['retina'])) $retinaInput->checked = 1;
-		$wrapper->add($retinaInput);
-
-		$lqpInput = wire('modules')->get('InputfieldCheckbox');
-		$lqpInput->name = 'lqp';
-		$lqpInput->columnWidth = 33;
-		$lqpInput->label = __('Low-quality Placeholder');
-		$lqpInput->description = __('Activate to create a low-quality placeholder (LQP) image for the src-attribute.');
-		if (!empty($data['lqp'])) $lqpInput->checked = 1;
-		$wrapper->add($lqpInput);
-
-		$small_sourceInput = wire('modules')->get('InputfieldCheckbox');
-		$small_sourceInput->name = 'small_source';
-		$small_sourceInput->columnWidth = 33;
-		$small_sourceInput->label = __('Use smallest size as LQP');
-		$small_sourceInput->description = __('Activate to use the smallest sized image as the low-quality placeholder');
-		if (!empty($data['small_source'])) $small_sourceInput->checked = 1;
-		$wrapper->add($small_sourceInput);
-
-		$wp_attrInput = wire('modules')->get('InputfieldCheckbox');
-		$wp_attrInput->name = 'wp_attr';
-		$wp_attrInput->columnWidth = 34;
-		$wp_attrInput->label = __('Add Webp-Version');
-		$wp_attrInput->description = __('Activate to add a Webp-version to each variation (since processwire 3.0.132).');
-		if (!empty($data['wp_attr'])) $wp_attrInput->checked = 1;
-		$wrapper->add($wp_attrInput);
-
-		$wh_attrInput = wire('modules')->get('InputfieldCheckbox');
-		$wh_attrInput->name = 'wh_attr';
-		$wh_attrInput->columnWidth = 33;
-		$wh_attrInput->label = __('Width/Height Attributes');
-		$wh_attrInput->description = __('Activate to add the right width and height attribute.');
-		if (!empty($data['wh_attr'])) $wh_attrInput->checked = 1;
-		$wrapper->add($wh_attrInput);
-
-		$data_attrInput = wire('modules')->get('InputfieldCheckbox');
-		$data_attrInput->name = 'data_attr';
-		$data_attrInput->columnWidth = 33;
-		$data_attrInput->label = __('Data* attributes');
-		$data_attrInput->description = __('Activate to add a data*- before the srcset and sizes attributes.');
-		if (!empty($data['data_attr'])) $data_attrInput->checked = 1;
-		$wrapper->add($data_attrInput);
-
-		$ll_attrInput = wire('modules')->get('InputfieldCheckbox');
-		$ll_attrInput->name = 'll_attr';
-		$ll_attrInput->columnWidth = 34;
-		$ll_attrInput->label = __('Use Lazysizes 5.2.0 JS-plugin');
-		$ll_attrInput->description = __('Activate to add Lazy loading. Forces data* attributes to be activated. Includes lazysizes.min.js. Adds the class "lazyload"');
-		if (!empty($data['ll_attr'])) $ll_attrInput->checked = $data_attrInput->checked = 1;
-		$wrapper->add($ll_attrInput);
-
-
-		return $wrapper;
-	}
 
 	/**
 	 * Get data by key
@@ -219,7 +91,7 @@ class TextformatterSrcset extends Textformatter implements ConfigurableModule {
 				$attribute = "data-";
 			}
 			if ($this->ll_attr) {
-				$this->class .= ' lazyload';
+				$this->class = trim(str_replace('lazyload', '', $this->class) . ' lazyload');
 				$strappend = '<script src="' . $this->wire('config')->urls->$this . 'lazysizes.min.js' . '" async></script>';
 			}
 
@@ -409,13 +281,14 @@ class TextformatterSrcset extends Textformatter implements ConfigurableModule {
 							$picture = new stdClass();
 							//Zuerst webp und dann das normale - because browser takes first source which meets criteria defined in media
 							if ($this->wp_attr)
-								if ($new_image->hasWebp) {
-									$picture->src = $new_image->webp->url;
-									$picture->media = $medias[$num];
-									$picture->border = $borders[$num];
-									$picture->type = wire('config')->fileContentTypes($new_image->webp->ext);
-									$smedia[] = $picture;
-								}
+								if ($config->version('3.0.132'))
+									if ($new_image->hasWebp) {
+										$picture->src = $new_image->webp->url;
+										$picture->media = $medias[$num];
+										$picture->border = $borders[$num];
+										$picture->type = wire('config')->fileContentTypes($new_image->webp->ext);
+										$smedia[] = $picture;
+									}
 							$picture = new stdClass();
 							$picture->src = $new_image->url;
 							$picture->media = $medias[$num];
@@ -491,23 +364,38 @@ class TextformatterSrcset extends Textformatter implements ConfigurableModule {
 			}
 
 			if (count($smedia) > 0) {
-				//Put it all together
-				$new = "<picture>";
-				foreach ($smedia as $med) {
-					$new .= "<source media='(" . $med->border . ":" . $med->media . "px)' {$attribute}srcset='" . $med->src . "' type='$med->type'>";
-				}
-				if ($addon)
-					$new .= $addon;
-				$ds = ($this->sizes ? "data-sizes='{$this->sizes}' " : "");
+				var_dump($smedia);
+
+				$ds = ($this->sizes ? "{$attribute}sizes='{$this->sizes}' " : "");
 				$alt = ($meta['alt'] ? "alt='{$meta['alt']}'" : "");
-				$new .= "<img {$attribute}src='{$src}' {$ds}{$wh_attr} {$alt} title='{$meta['quelle']}' {$class}/>";
-				$new .= "</picture>";
+
+				if ($this->srcmethod == 'picture') {
+					$new = "<picture>";
+					foreach ($smedia as $med) {
+						$new .= "<source media='(" . $med->border . ":" . $med->media . "px)' {$attribute}srcset='" . $med->src . "' type='$med->type'>";
+					}
+					if ($addon)
+						$new .= $addon;
+
+					$new .= "<img {$attribute}src='{$src}' {$ds}{$wh_attr} {$alt} title='{$meta['quelle']}' {$class}/>";
+					$new .= "</picture>";
+				}
+				if ($this->srcmethod == 'srcset') {
+					$tset = $tsize = array();
+					foreach ($smedia as $med) {
+						$tset[] = "{$med->src} {$med->media}w";
+						$tsize[] = "({$med->border}: {$med->media}px) {$med->media}px";
+					}
+					$tset = implode(', ', $tset);
+					$tsize = implode(', ', $tsize);
+					$new = "<img srcset='{$tset}' {$ds} src='{$src}'>";
+				}
 
 
 			} else {
 				//Wenn das Originalbild kleiner ist, als die Responsive-Varianten, soll es unberührt bleiben, da es vermutlich im Text positioniert ist.
 				$new = $original;
-				if ($this->wp_attr) {
+				if ($this->wp_attr) if ($config->version('3.0.132')) {
 					//generate a WEBP-Version (since processwire 3.0.132)
 					//https://processwire.com/blog/posts/webp-images-in-pw/
 					if ($image) {
@@ -516,7 +404,7 @@ class TextformatterSrcset extends Textformatter implements ConfigurableModule {
 						$new = "<picture>";
 						$new .= "<source {$attribute}srcset='" . $wp->url . "' type='$type'>";
 						$new .= $addon;
-						$new .= "<img {$attribute}src='{$image->url}' data-sizes='{$this->sizes}' {$wh_attr} alt='{$meta['alt']}' title='{$meta['quelle']}' {$class} />";
+						$new .= "<img {$attribute}src='{$image->url}' {$attribute}sizes='{$this->sizes}' {$wh_attr} alt='{$meta['alt']}' title='{$meta['quelle']}' {$class} />";
 						$new .= "</picture>";
 					}
 				}
