@@ -228,7 +228,7 @@ class TextformatterSrcset extends Textformatter implements Module
             //When no sizes are set
             if (empty($sizes)) {
                 if ($this->dpr)
-                    $srcset = array_merge($srcset, $this->get_dpr($parent, $meta, $image));
+                    $srcset = array_merge($srcset, $this->get_dpr($parent, null, $image));
                 else
                     $srcset[] = "{$item->url} 1x";
             } else {
@@ -246,7 +246,7 @@ class TextformatterSrcset extends Textformatter implements Module
                                 if ($new_image->hasWebp) {
                                     $dpr = $new_image->webp->url;
                                     if ($this->dpr) {
-                                        $dpr = implode(', ', $this->get_dpr($parent, $meta, $new_image, true));
+                                        $dpr = implode(', ', $this->get_dpr($parent, $size, $new_image, true));
                                     }
                                     $picture->src = $new_image->webp->url;
                                     $picture->dpr = $dpr;
@@ -257,7 +257,7 @@ class TextformatterSrcset extends Textformatter implements Module
                                 }
                         $dpr = $new_image->url;
                         if ($this->dpr) {
-                            $dpr = implode(', ', $this->get_dpr($parent, $meta, $new_image));
+                            $dpr = implode(', ', $this->get_dpr($parent, $size, $new_image));
                         }
                         $picture = new \stdClass();
                         $picture->src = $new_image->url;
@@ -306,14 +306,11 @@ class TextformatterSrcset extends Textformatter implements Module
 
             if (count($smedia) > 0) {
                 #var_dump($smedia);
-
-
                 if ($this->srcmethod == 'picture') {
                     $new = "<picture>";
                     foreach ($smedia as $med) {
                         $new .= "<source media='(" . $med->border . ":" . $med->media . "px)' {$attribute}srcset='" . ($this->dpr ? $med->dpr : $med->src) . "' type='$med->type'>";
                     }
-
 
                     $new .= "<img {$attribute}src='{$src}' {$wh_attr} {$alt} title='{$meta['quelle']}' {$class}/>";
                     $new .= "</picture>";
@@ -336,7 +333,7 @@ class TextformatterSrcset extends Textformatter implements Module
                             if ($image->hasWebp) {
                                 $dpr = $image->webp->url;
                                 if ($this->dpr) {
-                                    $dpr = implode(', ', $this->get_dpr($parent, $meta, $image, true));
+                                    $dpr = implode(', ', $this->get_dpr($parent, null, $image, true));
                                 }
                                 $picture->src = $image->webp->url;
                                 $picture->dpr = $dpr;
@@ -346,7 +343,7 @@ class TextformatterSrcset extends Textformatter implements Module
                     $picture = new \stdClass();
                     $dpr = $image->url;
                     if ($this->dpr) {
-                        $dpr = implode(', ', $this->get_dpr($parent, $meta, $image));
+                        $dpr = implode(', ', $this->get_dpr($parent, null, $image));
                     }
                     $picture->src = $image->url;
                     $picture->dpr = $dpr;
@@ -378,20 +375,30 @@ class TextformatterSrcset extends Textformatter implements Module
         return;
     }
 
-    private function get_dpr(object $parent, array $meta, object $image, bool $webp = false) {
-        if ($parent->width() >= $meta['width'] * 2) {
-            $retina_image = $parent->width($meta['width'] * 3, $this->options);
+    private function get_dpr(object $parent, int $size = null, object $image, bool $webp = false) {
+        if (!$size) $size = $image->width;
+        if ($image->width >= $size * 3)
+            $bild = $image;
+        elseif ($parent->width >= $size * 3)
+            $bild = $parent;
+        if (isset($bild)) {
+            $dpr = $bild->width($size * 3, $this->options);
             if ($webp)
-                $srcset[] = "{$retina_image->webp->url} 3x";
+                $srcset[] = "{$dpr->webp->url} 3x";
             else
-                $srcset[] = "{$retina_image->url} 3x";
+                $srcset[] = "{$dpr->url} 3x";
+            unset($bild);
         }
-        if ($parent->width() >= $meta['width']) {
-            $retina_image = $parent->width($meta['width'] * 2, $this->options);
+        if ($image->width >= $size * 2)
+            $bild = $image;
+        elseif ($parent->width >= $size * 2)
+            $bild = $parent;
+        if ($bild) {
+            $dpr = $bild->width($size * 2, $this->options);
             if ($webp)
-                $srcset[] = "{$retina_image->webp->url} 2x";
+                $srcset[] = "{$dpr->webp->url} 2x";
             else
-                $srcset[] = "{$retina_image->url} 2x";
+                $srcset[] = "{$dpr->url} 2x";
         }
         if ($webp)
             $srcset[] = "{$image->webp->url} 1x";
