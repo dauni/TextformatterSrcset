@@ -14,8 +14,7 @@ class TextformatterSrcset extends Textformatter implements Module
      *
      */
 
-    public static function getModuleInfo()
-    {
+    public static function getModuleInfo() {
         return array(
             'title' => 'Srcset Image Textformatter',
             'version' => 104,
@@ -27,8 +26,7 @@ class TextformatterSrcset extends Textformatter implements Module
     }
 
 
-    public function formatValue(Page $page, Field $field, &$str)
-    {
+    public function formatValue(Page $page, Field $field, &$str) {
         //Get all image tags from the $str and place them in $images
         if (!preg_match_all('/<img[^>]+>/i', $str, $images)) return;
         #$images = $images[0];
@@ -189,8 +187,8 @@ class TextformatterSrcset extends Textformatter implements Module
 
 
                 // basename of image.
-                $meta['imageName'] = $item->name;
-                $meta['ext'] = $item->ext;
+
+
                 $meta['width'] = $item->width();
                 $meta['height'] = $item->height();
                 $image = $item;
@@ -226,29 +224,17 @@ class TextformatterSrcset extends Textformatter implements Module
 
 
             //When no sizes are set
-
             if (empty($sizes)) {
-                #$srcset[] = "{$meta['source']} 1x";
                 $srcset[] = "{$item->url} 1x";
-                //... and retina is active
                 if ($this->dpr) {
-                    //And our image is sized (e.g. larger image possible). Then we can provide a better image to HiDPI devices
-                    $retina_image = $parent->width($meta['width'] * 2, $options);
                     $srcset[] = $srcset = $this->get_dpr($parent, $meta, $image, $options);
                 }
             } else {
-                //Sizes are set
-                //For every size
-                //Nur bei den "großen" Bildern - für baufuchs
-                #if ($meta['width'] > 300) {
                 foreach ($sizes as $num => $size) {
-                    //Do we need this size as a source?
-                    #if ($size < $meta['width']) {
-
                     //Orientation
                     if ($image) {
                         if ($image->width < $size)
-                            $new_image = $parent->width($size, $options);
+                            $new_image = $parent->width($size, $options); //User the original file for variation that becomes bigger as the acutal image
                         else
                             $new_image = $image->width($size, $options);
                         $srcset[] = "{$new_image->url} {$new_image->width}w";
@@ -371,17 +357,25 @@ class TextformatterSrcset extends Textformatter implements Module
         return;
     }
 
-    private function get_dpr($parent, $meta, $image, $options)
-    {
+    private function get_dpr($parent, $meta, $image, $options) {
         if ($parent->width() >= $meta['width'] * 2) {
             $retina_image = $parent->width($meta['width'] * 3, $options);
-            $srcset[] = "{$retina_image->url} 3x";
+            if ($options['webpAdd'])
+                $srcset[] = "{$retina_image->webp->url} 3x";
+            else
+                $srcset[] = "{$retina_image->url} 3x";
         }
         if ($parent->width() >= $meta['width']) {
             $retina_image = $parent->width($meta['width'] * 2, $options);
-            $srcset[] = "{$retina_image->url} 2x";
+            if ($options['webpAdd'])
+                $srcset[] = "{$retina_image->webp->url} 2x";
+            else
+                $srcset[] = "{$retina_image->url} 2x";
         }
-        $srcset[] = "{$image->url} 1x";
+        if ($options['webpAdd'])
+            $srcset[] = "{$image->webp->url} 1x";
+        else
+            $srcset[] = "{$image->url} 1x";
         return $srcset;
     }
 }
