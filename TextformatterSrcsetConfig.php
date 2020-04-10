@@ -70,7 +70,7 @@ class TextformatterSrcsetConfig extends \ProcessWire\ModuleConfig
         $f = $this->modules->get('InputfieldCheckbox');
         $f->name = 'dpr';
         $f->label = $this->_('DPR-switching');
-        $f->description = $this->_('Activate DevicePixelRatio-switching to create HiDPI images. Will appear as 1x, 2x, 3x and disables the sizes-thing, except for art direction.');
+        $f->description = $this->_('Activate DevicePixelRatio-switching to create HiDPI images. Will appear as 1x, 2x, 3x and disables the sizes-thing, if using together with resolution switching.');
         $inputfields->add($f);
 
         $f = $this->modules->get('InputfieldCheckbox');

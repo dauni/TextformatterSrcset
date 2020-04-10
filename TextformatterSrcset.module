@@ -247,7 +247,10 @@ class TextformatterSrcset extends Textformatter implements Module
 
                     //Orientation
                     if ($image) {
-                        $new_image = $image->width($size, $options);
+                        if ($image->width < $size)
+                            $new_image = $parent->width($size, $options);
+                        else
+                            $new_image = $image->width($size, $options);
                         $srcset[] = "{$new_image->url} {$new_image->width}w";
                         $picture = new \stdClass();
                         //First webp - because browser takes first source which meets criteria defined in media
