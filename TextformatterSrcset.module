@@ -13,6 +13,8 @@ class TextformatterSrcset extends Textformatter implements Module
      * https://processwire.com/api/ref/module/
      *
      */
+    private $options = array();
+    private $options_low = array();
 
     public static function getModuleInfo() {
         return array(
@@ -42,12 +44,12 @@ class TextformatterSrcset extends Textformatter implements Module
         #sort($medias);
         $borders = explode(',', $this->borders);
         #var_dump($sizes);
-        $options = array('upscaling' => false, 'cropping' => true);
-        $options_low = array('upscaling' => true, 'cropping' => true, 'quality' => floor($this->config->imageSizerOptions['quality'] * 0.33));
+        $this->options = array('upscaling' => false, 'cropping' => true);
+        $this->options_low = array('upscaling' => true, 'cropping' => true, 'quality' => floor($this->config->imageSizerOptions['quality'] * 0.33));
 
         if ($this->wp_attr && $this->config->version('3.0.132')) {
-            $options = array('upscaling' => false, 'cropping' => true, 'webpAdd' => true, 'webpQuality' => 75);
-            $options_low = array('upscaling' => true, 'cropping' => true, 'quality' => floor($this->config->imageSizerOptions['quality'] * 0.33), 'webpAdd' => true, 'webpQuality' => 65);
+            $this->options = array('upscaling' => false, 'cropping' => true, 'webpAdd' => true, 'webpQuality' => 75);
+            $this->options_low = array('upscaling' => true, 'cropping' => true, 'quality' => floor($this->config->imageSizerOptions['quality'] * 0.33), 'webpAdd' => true, 'webpQuality' => 65);
         }
 
 
@@ -204,18 +206,18 @@ class TextformatterSrcset extends Textformatter implements Module
 
             $srcset = array();
             $smedia = array();
-            $addon = '';
+
 
             $src = $meta['source'];
 
             if ($this->lqp OR $this->small_source) {
                 //Should we use the smallest image from the sizes?
                 if ($this->small_source && !empty($sizes)) {
-                    $src_image = $image->width($sizes[0], $options);
+                    $src_image = $image->width($sizes[0], $this->options);
                 } //Or do we really use a LQ image?
                 else {
                     $new_size = floor($image->width * 0.2);
-                    $src_image = $image->width($new_size, $options_low);
+                    $src_image = $image->width($new_size, $this->options_low);
                 }
                 $src = $src_image->url;
                 if (!$this->dpr)
@@ -225,18 +227,17 @@ class TextformatterSrcset extends Textformatter implements Module
 
             //When no sizes are set
             if (empty($sizes)) {
-                $srcset[] = "{$item->url} 1x";
-                if ($this->dpr) {
-                    $srcset[] = $srcset = $this->get_dpr($parent, $meta, $image, $options);
-                }
+                if ($this->dpr)
+                    $srcset = array_merge($srcset, $this->get_dpr($parent, $meta, $image));
+                else
+                    $srcset[] = "{$item->url} 1x";
             } else {
                 foreach ($sizes as $num => $size) {
-                    //Orientation
                     if ($image) {
                         if ($image->width < $size)
-                            $new_image = $parent->width($size, $options); //User the original file for variation that becomes bigger as the acutal image
+                            $new_image = $parent->width($size, $this->options); //User the original file for variation that becomes bigger as the acutal image
                         else
-                            $new_image = $image->width($size, $options);
+                            $new_image = $image->width($size, $this->options);
                         $srcset[] = "{$new_image->url} {$new_image->width}w";
                         $picture = new \stdClass();
                         //First webp - because browser takes first source which meets criteria defined in media
@@ -245,7 +246,7 @@ class TextformatterSrcset extends Textformatter implements Module
                                 if ($new_image->hasWebp) {
                                     $dpr = $new_image->webp->url;
                                     if ($this->dpr) {
-                                        $dpr = implode(', ', $this->get_dpr($parent, $meta, $new_image->webp, $options));
+                                        $dpr = implode(', ', $this->get_dpr($parent, $meta, $new_image, true));
                                     }
                                     $picture->src = $new_image->webp->url;
                                     $picture->dpr = $dpr;
@@ -256,7 +257,7 @@ class TextformatterSrcset extends Textformatter implements Module
                                 }
                         $dpr = $new_image->url;
                         if ($this->dpr) {
-                            $dpr = implode(', ', $this->get_dpr($parent, $meta, $new_image, $options));
+                            $dpr = implode(', ', $this->get_dpr($parent, $meta, $new_image));
                         }
                         $picture = new \stdClass();
                         $picture->src = $new_image->url;
@@ -269,15 +270,11 @@ class TextformatterSrcset extends Textformatter implements Module
                 }
 
                 #}
-                //If HiDPI is enabled
-                if ($this->dpr) {
-                    $srcset = $this->get_dpr($parent, $meta, $image, $options);
 
-                    #$addon .= '<source ' . $attribute . 'src="' . $retina_image->url . ' 2x, ' . $image->url . ' 1x" />';
+                if ($this->dpr) {
+                    $srcset = array_merge($srcset, $this->get_dpr($parent, $meta, $image));
                 }
 
-                //Remove the last comma
-                #$srcset = substr($srcset, 0, -1);
 
             }
 
@@ -288,6 +285,9 @@ class TextformatterSrcset extends Textformatter implements Module
 
             $wh_attr = '';
             $class = '';
+            $ds = ($this->sizes ? " {$attribute}sizes='{$this->sizes}' " : "");
+            $alt = ($meta['alt'] ? "alt='{$meta['alt']}'" : "");
+            #var_dump($srcset);
             $srcset = implode(', ', $srcset);
 
             if ($this->wh_attr) {
@@ -307,17 +307,13 @@ class TextformatterSrcset extends Textformatter implements Module
             if (count($smedia) > 0) {
                 #var_dump($smedia);
 
-                $ds = ($this->sizes ? " {$attribute}sizes='{$this->sizes}' " : "");
-                $alt = ($meta['alt'] ? "alt='{$meta['alt']}'" : "");
 
                 if ($this->srcmethod == 'picture') {
                     $new = "<picture>";
-                    $i = 0;
                     foreach ($smedia as $med) {
                         $new .= "<source media='(" . $med->border . ":" . $med->media . "px)' {$attribute}srcset='" . ($this->dpr ? $med->dpr : $med->src) . "' type='$med->type'>";
                     }
-                    if ($addon)
-                        $new .= $addon;
+
 
                     $new .= "<img {$attribute}src='{$src}' {$wh_attr} {$alt} title='{$meta['quelle']}' {$class}/>";
                     $new .= "</picture>";
@@ -330,22 +326,47 @@ class TextformatterSrcset extends Textformatter implements Module
 
 
             } else {
-                //Wenn das Originalbild kleiner ist, als die Responsive-Varianten, soll es unberührt bleiben, da es vermutlich im Text positioniert ist.
-                die('dieses else macht was?');
-                $new = $original;
-                if ($this->wp_attr) if ($this->config->version('3.0.132')) {
-                    //generate a WEBP-Version (since processwire 3.0.132)
-                    //https://processwire.com/blog/posts/webp-images-in-pw/
-                    if ($image) {
-                        $wp = $image->webp();
-                        $type = $this->config->fileContentTypes($wp->ext);
-                        $new = "<picture>";
-                        $new .= "<source {$attribute}srcset='" . $wp->url . "' type='$type'>";
-                        $new .= $addon;
-                        $new .= "<img {$attribute}src='{$image->url}' {$attribute}sizes='{$this->sizes}' {$wh_attr} alt='{$meta['alt']}' title='{$meta['quelle']}' {$class} />";
-                        $new .= "</picture>";
+                //If there are no sizes set in the module, we do nothing?
+                #die('dieses else macht was?');
+                if ($this->srcmethod == 'picture') {
+                    $picture = new \stdClass();
+                    $smedia = array();
+                    if ($this->wp_attr)
+                        if ($this->config->version('3.0.132'))
+                            if ($image->hasWebp) {
+                                $dpr = $image->webp->url;
+                                if ($this->dpr) {
+                                    $dpr = implode(', ', $this->get_dpr($parent, $meta, $image, true));
+                                }
+                                $picture->src = $image->webp->url;
+                                $picture->dpr = $dpr;
+                                $picture->type = $this->config->fileContentTypes($image->webp->ext);
+                                $smedia[] = $picture;
+                            }
+                    $picture = new \stdClass();
+                    $dpr = $image->url;
+                    if ($this->dpr) {
+                        $dpr = implode(', ', $this->get_dpr($parent, $meta, $image));
                     }
+                    $picture->src = $image->url;
+                    $picture->dpr = $dpr;
+                    $picture->type = $this->config->fileContentTypes($image->ext);
+                    $smedia[] = $picture;
+
+                    $new = "<picture>";
+                    foreach ($smedia as $med) {
+                        $new .= "<source {$attribute}srcset='" . ($this->dpr ? $med->dpr : $med->src) . "' type='$med->type'>";
+                    }
+
+
+                    $new .= "<img {$attribute}src='{$src}' {$wh_attr} {$alt} title='{$meta['quelle']}' {$class}/>";
+                    $new .= "</picture>";
                 }
+                if ($this->srcmethod == 'srcset') {
+                    $new = "<img {$attribute}srcset='{$srcset}' {$attribute}src='{$src}'{$wh_attr}{$class} {$alt} title='{$meta['quelle']}'>";
+                }
+                #$new = $original;
+
             }
             //Add to our new images
             $matches[] = $new;
@@ -357,22 +378,22 @@ class TextformatterSrcset extends Textformatter implements Module
         return;
     }
 
-    private function get_dpr($parent, $meta, $image, $options) {
+    private function get_dpr(object $parent, array $meta, object $image, bool $webp = false) {
         if ($parent->width() >= $meta['width'] * 2) {
-            $retina_image = $parent->width($meta['width'] * 3, $options);
-            if ($options['webpAdd'])
+            $retina_image = $parent->width($meta['width'] * 3, $this->options);
+            if ($webp)
                 $srcset[] = "{$retina_image->webp->url} 3x";
             else
                 $srcset[] = "{$retina_image->url} 3x";
         }
         if ($parent->width() >= $meta['width']) {
-            $retina_image = $parent->width($meta['width'] * 2, $options);
-            if ($options['webpAdd'])
+            $retina_image = $parent->width($meta['width'] * 2, $this->options);
+            if ($webp)
                 $srcset[] = "{$retina_image->webp->url} 2x";
             else
                 $srcset[] = "{$retina_image->url} 2x";
         }
-        if ($options['webpAdd'])
+        if ($webp)
             $srcset[] = "{$image->webp->url} 1x";
         else
             $srcset[] = "{$image->url} 1x";
