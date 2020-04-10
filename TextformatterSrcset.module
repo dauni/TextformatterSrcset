@@ -23,7 +23,7 @@ class TextformatterSrcset extends Textformatter implements Module
             'summary' => "Adds the srcset to images within a textarea",
             'author' => 'Conclurer GbR, Daniel',
             'icon' => 'picture-o',
-            'requires' => array('ProcessWire>=3.0.0')
+            'requires' => array('ProcessWire>=3.0.0', 'PHP>=7.2.0')
         );
     }
 
@@ -228,7 +228,7 @@ class TextformatterSrcset extends Textformatter implements Module
             //When no sizes are set
             if (empty($sizes)) {
                 if ($this->dpr)
-                    $srcset = array_merge($srcset, $this->get_dpr($parent, null, $image));
+                    $srcset = array_merge($srcset, $this->get_dpr($parent, $image, null));
                 else
                     $srcset[] = "{$item->url} 1x";
             } else {
@@ -246,24 +246,28 @@ class TextformatterSrcset extends Textformatter implements Module
                                 if ($new_image->hasWebp) {
                                     $dpr = $new_image->webp->url;
                                     if ($this->dpr) {
-                                        $dpr = implode(', ', $this->get_dpr($parent, $size, $new_image, true));
+                                        $dpr = implode(', ', $this->get_dpr($parent, $new_image, $size, true));
                                     }
                                     $picture->src = $new_image->webp->url;
                                     $picture->dpr = $dpr;
-                                    $picture->media = $medias[$num];
-                                    $picture->border = $borders[$num];
+                                    if ($this->srcmethod == 'picture' && count($medias)) {
+                                        $picture->media = $medias[$num];
+                                        $picture->border = $borders[$num];
+                                    }
                                     $picture->type = $this->config->fileContentTypes($new_image->webp->ext);
                                     $smedia[] = $picture;
                                 }
                         $dpr = $new_image->url;
                         if ($this->dpr) {
-                            $dpr = implode(', ', $this->get_dpr($parent, $size, $new_image));
+                            $dpr = implode(', ', $this->get_dpr($parent, $new_image, $size));
                         }
                         $picture = new \stdClass();
                         $picture->src = $new_image->url;
                         $picture->dpr = $dpr;
-                        $picture->media = $medias[$num];
-                        $picture->border = $borders[$num];
+                        if ($this->srcmethod == 'picture' && count($medias)) {
+                            $picture->media = $medias[$num];
+                            $picture->border = $borders[$num];
+                        }
                         $picture->type = $this->config->fileContentTypes($new_image->ext);
                         $smedia[] = $picture;
                     }
@@ -272,7 +276,9 @@ class TextformatterSrcset extends Textformatter implements Module
                 #}
 
                 if ($this->dpr) {
-                    $srcset = array_merge($srcset, $this->get_dpr($parent, $meta, $image));
+                    //You cannot use devicepixelratio switching together with resolution switching, so the srcset will not combined but overwritten here
+                    #$srcset = array_merge($srcset, $this->get_dpr($parent, $image, null));
+                    $srcset = $this->get_dpr($parent, $image, null);
                 }
 
 
@@ -309,7 +315,10 @@ class TextformatterSrcset extends Textformatter implements Module
                 if ($this->srcmethod == 'picture') {
                     $new = "<picture>";
                     foreach ($smedia as $med) {
+                        if(isset($med->border))
                         $new .= "<source media='(" . $med->border . ":" . $med->media . "px)' {$attribute}srcset='" . ($this->dpr ? $med->dpr : $med->src) . "' type='$med->type'>";
+                        else
+                            $new .= "<source {$attribute}srcset='" . ($this->dpr ? $med->dpr : $med->src) . "' type='$med->type'>";
                     }
 
                     $new .= "<img {$attribute}src='{$src}' {$wh_attr} {$alt} title='{$meta['quelle']}' {$class}/>";
@@ -333,7 +342,7 @@ class TextformatterSrcset extends Textformatter implements Module
                             if ($image->hasWebp) {
                                 $dpr = $image->webp->url;
                                 if ($this->dpr) {
-                                    $dpr = implode(', ', $this->get_dpr($parent, null, $image, true));
+                                    $dpr = implode(', ', $this->get_dpr($parent, $image, null, true));
                                 }
                                 $picture->src = $image->webp->url;
                                 $picture->dpr = $dpr;
@@ -343,7 +352,7 @@ class TextformatterSrcset extends Textformatter implements Module
                     $picture = new \stdClass();
                     $dpr = $image->url;
                     if ($this->dpr) {
-                        $dpr = implode(', ', $this->get_dpr($parent, null, $image));
+                        $dpr = implode(', ', $this->get_dpr($parent, $image, null));
                     }
                     $picture->src = $image->url;
                     $picture->dpr = $dpr;
@@ -375,7 +384,7 @@ class TextformatterSrcset extends Textformatter implements Module
         return;
     }
 
-    private function get_dpr(object $parent, int $size = null, object $image, bool $webp = false) {
+    private function get_dpr(object $parent, object $image, int $size = null, bool $webp = false) {
         if (!$size) $size = $image->width;
         if ($image->width >= $size * 3)
             $bild = $image;
