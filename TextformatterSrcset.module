@@ -415,21 +415,20 @@ class TextformatterSrcset extends Textformatter implements Module
     }
 
     private function checktrans($image) {
-        $img = new \Imagick();
-        $img->readImage($image);
-        // 0 = No transparency
-        // 1 = Has transparency
-        $hasTransparency = $img->getImageAlphaChannel();
-        if ($hasTransparency) {
-            #echo "The image has transparency :)";
-            if ($this->trans)
+        if ($this->trans) {
+            $img = new \Imagick();
+            $img->readImage($image);
+            // 0 = No transparency
+            // 1 = Has transparency
+            $hasTransparency = $img->getImageAlphaChannel();
+            if ($hasTransparency) {
+                #echo "The image has transparency :)";
                 return false;
-            return true;
-        } else {
-            #echo "The image has no transparency :(";
-            if ($this->trans)
+            } else {
+                #echo "The image has no transparency :(";
                 return true;
-            return false;
+            }
         }
+        return true;
     }
 }
