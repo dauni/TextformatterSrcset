@@ -244,18 +244,20 @@ class TextformatterSrcset extends Textformatter implements Module
                         if ($this->wp_attr)
                             if ($this->config->version('3.0.132'))
                                 if ($new_image->hasWebp) {
-                                    $dpr = $new_image->webp->url;
-                                    if ($this->dpr) {
-                                        $dpr = implode(', ', $this->get_dpr($parent, $new_image, $size, true));
+                                    if ($this->checktrans($image->filename)) {
+                                        $dpr = $new_image->webp->url;
+                                        if ($this->dpr) {
+                                            $dpr = implode(', ', $this->get_dpr($parent, $new_image, $size, true));
+                                        }
+                                        $picture->src = $new_image->webp->url;
+                                        $picture->dpr = $dpr;
+                                        if ($this->srcmethod == 'picture' && count($medias)) {
+                                            $picture->media = $medias[$num];
+                                            $picture->border = $borders[$num];
+                                        }
+                                        $picture->type = $this->config->fileContentTypes($new_image->webp->ext);
+                                        $smedia[] = $picture;
                                     }
-                                    $picture->src = $new_image->webp->url;
-                                    $picture->dpr = $dpr;
-                                    if ($this->srcmethod == 'picture' && count($medias)) {
-                                        $picture->media = $medias[$num];
-                                        $picture->border = $borders[$num];
-                                    }
-                                    $picture->type = $this->config->fileContentTypes($new_image->webp->ext);
-                                    $smedia[] = $picture;
                                 }
                         $dpr = $new_image->url;
                         if ($this->dpr) {
@@ -340,14 +342,16 @@ class TextformatterSrcset extends Textformatter implements Module
                     if ($this->wp_attr)
                         if ($this->config->version('3.0.132'))
                             if ($image->hasWebp) {
-                                $dpr = $image->webp->url;
-                                if ($this->dpr) {
-                                    $dpr = implode(', ', $this->get_dpr($parent, $image, null, true));
+                                if ($this->checktrans($image->filename)) {
+                                    $dpr = $image->webp->url;
+                                    if ($this->dpr) {
+                                        $dpr = implode(', ', $this->get_dpr($parent, $image, null, true));
+                                    }
+                                    $picture->src = $image->webp->url;
+                                    $picture->dpr = $dpr;
+                                    $picture->type = $this->config->fileContentTypes($image->webp->ext);
+                                    $smedia[] = $picture;
                                 }
-                                $picture->src = $image->webp->url;
-                                $picture->dpr = $dpr;
-                                $picture->type = $this->config->fileContentTypes($image->webp->ext);
-                                $smedia[] = $picture;
                             }
                     $picture = new \stdClass();
                     $dpr = $image->url;
@@ -408,5 +412,24 @@ class TextformatterSrcset extends Textformatter implements Module
         else
             $srcset[] = "{$image->url} 1x";
         return $srcset;
+    }
+
+    private function checktrans($image) {
+        $img = new \Imagick();
+        $img->readImage($image);
+        // 0 = No transparency
+        // 1 = Has transparency
+        $hasTransparency = $img->getImageAlphaChannel();
+        if ($hasTransparency) {
+            #echo "The image has transparency :)";
+            if ($this->trans)
+                return false;
+            return true;
+        } else {
+            #echo "The image has no transparency :(";
+            if ($this->trans)
+                return true;
+            return false;
+        }
     }
 }

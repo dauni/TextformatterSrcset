@@ -76,8 +76,16 @@ class TextformatterSrcsetConfig extends \ProcessWire\ModuleConfig
 
         $f = $this->modules->get('InputfieldCheckbox');
         $f->name = 'dpr';
+        $f->columnWidth = 70;
         $f->label = $this->_('DPR-switching');
         $f->description = $this->_('Activate DevicePixelRatio-switching to create HiDPI images. Will appear as 1x, 2x, 3x and disables the sizes-thing, if using together with resolution switching.');
+        $inputfields->add($f);
+
+        $f = $this->modules->get('InputfieldCheckbox');
+        $f->name = 'trans';
+        $f->columnWidth = 30;
+        $f->label = $this->_('No transparency');
+        $f->description = $this->_('If your software has problems generating correct webp-files from transparent pngs, you can exclude these images.');
         $inputfields->add($f);
 
         $f = $this->modules->get('InputfieldCheckbox');
