@@ -52,7 +52,7 @@ class TextformatterSrcsetConfig extends \ProcessWire\ModuleConfig
         $f->showIf = 'srcmethod=picture';
         $f->required = 1;
         #$f->requiredIf = "borders!=''";
-        $f->requiredIf = "sizes!=''";
+        $f->requiredIf = "resolutions!=''";
         $inputfields->add($f);
 
         $f = $this->modules->get('InputfieldText');
@@ -64,7 +64,7 @@ class TextformatterSrcsetConfig extends \ProcessWire\ModuleConfig
         $f->showIf = 'srcmethod=picture';
         $f->required = 1;
         #$f->requiredIf = "medias!=''";
-        $f->requiredIf = "sizes!=''";
+        $f->requiredIf = "resolutions!=''";
         $inputfields->add($f);
 
         $f = $this->modules->get('InputfieldText');
