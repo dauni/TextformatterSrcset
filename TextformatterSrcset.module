@@ -31,7 +31,6 @@ class TextformatterSrcset extends Textformatter implements Module
     public function formatValue(Page $page, Field $field, &$str) {
         //Get all image tags from the $str and place them in $images
         if (!preg_match_all('/<img[^>]+>/i', $str, $images)) return;
-        #$images = $images[0];
         #echo "Bilder: "; var_dump($images);
 
         //Setup...
@@ -53,7 +52,7 @@ class TextformatterSrcset extends Textformatter implements Module
         }
 
 
-        $p = $this->page;
+
         //Looping through all images
         foreach ($images[0] as $original) {
 
@@ -86,6 +85,7 @@ class TextformatterSrcset extends Textformatter implements Module
                 #echo "Bilder: ";
                 #var_dump($array);
                 if (!$array[1]) continue;
+                #if (!is_file($array[1][0])) break;
                 $meta['source'] = $array[1][0]; // original
 
                 // ProcessWire alignment done with a class
@@ -99,50 +99,43 @@ class TextformatterSrcset extends Textformatter implements Module
 
                 // example: 1023/image-name.100x100.jpg
                 $string = str_replace($fileLocation, "", $meta['source']);
-                // create array
                 $array = explode("/", $string);
-                #echo "Pfadelemente {$string}:"; var_dump($array);
-                #echo "Page: ".$this->wire('page')->id;
                 // id of page where where image belongs to
                 $meta['id'] = $array[0];
                 // refering to to page where the image lives - if it is not the current page.
-                if ($meta['id'] != $p->id)
-                    $p = $this->pages->get($meta['id']);
+                if ($meta['id'] != $page->id)
+                    $page = $this->pages->get($meta['id']);
 
                 // raw image variation name
                 $variationName = $array[1];
-                #echo $variationName;
-                #echo $fileLocation.$variationName;
 
-                #$i = 0;
                 // first check if a pageimagename corresponds to $variationName,
                 // second check all pageimagevariations for $variationName
-                // if the pages does not have images, break the loop
-                if ($p->images)
-                    foreach ($p->images as $imvar) {
-                        #$pagebilder[$p->id][++$i][] = $imvar->name;
-                        if ($variationName == $imvar->name) {
-                            $item = $imvar;
-                            break;
-                        } else {
-                            foreach ($imvar->getVariations() as $var) {
-                                #$pagebilder[$p->id][$i][] = $var->name;
-                                if ($variationName == $var->name) {
-                                    $item = $var;
-                                    break;
-                                }
+                // if the pages does not have images, exit
+                if (!$page->images)
+                    return;
+                foreach ($page->images as $imvar) {
+                    #$pagebilder[$page->id][++$i][] = $imvar->name;
+                    if ($variationName == $imvar->name) {
+                        $parent = $item = $imvar;
+                        break;
+                    } else {
+                        foreach ($imvar->getVariations() as $var) {
+                            #$pagebilder[$page->id][$i][] = $var->name;
+                            if ($variationName == $var->name) {
+                                $item = $var;
+                                $parent = $item->getOriginal();
+                                break 2;
                             }
                         }
                     }
-                else break;
-
-
-                //Original File
-                if ($item->isVariation($variationName)) {
-                    $parent = $item->getOriginal();
-                } else {
-                    $parent = $item;
                 }
+
+                if (!isset($parent)) {
+                    $this->error('File ' . $fileLocation.$variationName . ' not found', true);
+                    return;
+                }
+
 
                 #var_dump($item);
                 #var_dump($item->getOriginal());
