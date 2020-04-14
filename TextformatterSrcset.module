@@ -15,6 +15,7 @@ class TextformatterSrcset extends Textformatter implements Module
      */
     private $options = array();
     private $options_low = array();
+    private $cutdata;
 
     public static function getModuleInfo() {
         return array(
@@ -36,7 +37,6 @@ class TextformatterSrcset extends Textformatter implements Module
         //Setup...
         $matches = array();
         $fileLocation = $this->config->urls->files;
-        #var_dump($this->resolutions);
         $sizes = array_map('intval', array_filter(explode(',', $this->resolutions), 'is_numeric'));
         #sort($sizes);
         $medias = array_map('intval', array_filter(explode(',', $this->medias), 'is_numeric'));
@@ -50,7 +50,6 @@ class TextformatterSrcset extends Textformatter implements Module
             $this->options = array('upscaling' => false, 'cropping' => true, 'webpAdd' => true, 'webpQuality' => 75);
             $this->options_low = array('upscaling' => true, 'cropping' => true, 'quality' => floor($this->config->imageSizerOptions['quality'] * 0.33), 'webpAdd' => true, 'webpQuality' => 65);
         }
-
 
 
         //Looping through all images
@@ -108,7 +107,20 @@ class TextformatterSrcset extends Textformatter implements Module
 
                 // raw image variation name
                 $variationName = $array[1];
-
+                #echo "<p>" . $variationName;
+                if (strpos($variationName, 'crop') !== false) {
+                    $tmp = explode('.', $variationName);
+                    $cutsizes = explode('-', $tmp[1]);
+                    $cutdata = new \stdClass();
+                    $cutdata->width = substr($cutsizes[0], 0, strpos($cutsizes[0], 'x'));
+                    $cutdata->height = substr($cutsizes[0], strpos($cutsizes[0], 'x') + 1);
+                    $cutdata->x = substr($cutsizes[1], 5, strpos($cutsizes[1], 'y') - 5);
+                    $cutdata->y = substr($cutsizes[1], strpos($cutsizes[1], 'y') + 1);
+                    $this->cutdata = $cutdata;
+                    #echo "<p>" . $cutdata->width . " x " . $cutdata->height . " : s-" . $cutdata->x." e-".$cutdata->y;
+                    #var_dump($cutsizes);
+                    #var_dump($this->cutdata);
+                }
                 // first check if a pageimagename corresponds to $variationName,
                 // second check all pageimagevariations for $variationName
                 // if the pages does not have images, exit
@@ -131,8 +143,9 @@ class TextformatterSrcset extends Textformatter implements Module
                     }
                 }
 
+
                 if (!isset($parent)) {
-                    $this->error('File ' . $fileLocation.$variationName . ' not found', true);
+                    $this->error('File ' . $fileLocation . $variationName . ' not found', true);
                     return;
                 }
 
@@ -227,9 +240,22 @@ class TextformatterSrcset extends Textformatter implements Module
             } else {
                 foreach ($sizes as $num => $size) {
                     if ($image) {
-                        if ($image->width < $size)
-                            $new_image = $parent->width($size, $this->options); //User the original file for variation that becomes bigger as the acutal image
-                        else
+                        if ($image->width < $size) {
+                            //Use the original file for variation that becomes bigger as the acutal image
+                            if ($this->cutdata->width) {
+                                if ($this->cutdata->width <= $size) {
+                                    if ($this->cutdata->x > $this->cutdata->width)
+                                        $this->cutdata->x -= $this->cutdata->width * 0.25;
+                                    if ($this->cutdata->y > $this->cutdata->height)
+                                        $this->cutdata->y -= $this->cutdata->height * 0.25;
+                                    $new_image = $parent->crop($this->cutdata->x, $this->cutdata->y, $this->cutdata->width * 1.5, $this->cutdata->height * 1.5)->width($size, $this->options);
+                                }
+                                if ($this->cutdata->width >= $size)
+                                    $new_image = $parent->crop($this->cutdata->x, $this->cutdata->y, $this->cutdata->width, $this->cutdata->height)->width($size, $this->options);
+                            } else
+                                $new_image = $parent->width($size, $this->options);
+
+                        } else
                             $new_image = $image->width($size, $this->options);
                         $srcset[] = "{$new_image->url} {$new_image->width}w";
                         $picture = new \stdClass();
@@ -388,8 +414,11 @@ class TextformatterSrcset extends Textformatter implements Module
                 $msize = $size * $m;
                 if ($image->width >= $msize)
                     $bild = $image;
-                elseif ($parent->width >= $msize)
+                elseif ($parent->width >= $msize) {
                     $bild = $parent;
+                    if (isset($this->cutdata->width))
+                        $bild = $parent->crop($this->cutdata->x, $this->cutdata->y, $this->cutdata->width, $this->cutdata->height);
+                }
                 if (isset($bild)) {
                     $dpr = $bild->width($msize, $this->options);
                     if ($webp)
@@ -423,5 +452,14 @@ class TextformatterSrcset extends Textformatter implements Module
             }
         }
         return true;
+    }
+
+    private function get_croparea(object $image, object $parent, int $size) {
+        if (!$this->cutdata->width)
+            return false;
+        $ratio = $this->cutdata->width / $this->cutdata->height;
+        if ($image->width < $size && $parent->width >= $size) {
+            $out = $parent->crop($x, $y, $w, $h)->width($size, $this->options);
+        }
     }
 }
