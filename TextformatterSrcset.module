@@ -449,12 +449,4 @@ class TextformatterSrcset extends Textformatter implements Module
         return true;
     }
 
-    private function get_croparea(object $image, object $parent, int $size) {
-        if (!$this->cutdata->width)
-            return false;
-        $ratio = $this->cutdata->width / $this->cutdata->height;
-        if ($image->width < $size && $parent->width >= $size) {
-            $out = $parent->crop($x, $y, $w, $h)->width($size, $this->options);
-        }
-    }
 }
