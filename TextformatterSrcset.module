@@ -7,6 +7,8 @@ class TextformatterSrcset extends Textformatter implements Module
     //https://blog.kulturbanause.de/2014/09/responsive-images-srcset-sizes-adaptive/
     //https://addyosmani.com/blog/lazy-loading/
     //https://html.spec.whatwg.org/multipage/embedded-content.html#attr-img-srcset
+    //https://processwire.com/api/ref/image-sizer-engine/set-options/
+    // 'scale' => 1.0 (use 2.0 for hidpi or 1.0 for normal-default) 'hidpi' => false, (alternative to scale, specify true to enable hidpi)
 
     /**
      * Module information
@@ -81,8 +83,9 @@ class TextformatterSrcset extends Textformatter implements Module
                 #var_dump($original);
                 //Find source image
                 preg_match_all('/src=["|\'](.*?)["|\']/i', $original, $array);
-                #echo "Bilder: ";
+                #echo "Bilder: <pre>";
                 #var_dump($array);
+
                 if (!$array[1]) continue;
                 #if (!is_file($array[1][0])) break;
                 $meta['source'] = $array[1][0]; // original
@@ -105,6 +108,16 @@ class TextformatterSrcset extends Textformatter implements Module
                 if ($meta['id'] != $page->id)
                     $page = $this->pages->get($meta['id']);
 
+                //If there are more than one imagefield, or the imagefield-name is not "images"
+                foreach ($page->fields as $field) {
+                    if ($field->type == 'FieldtypeImage') {
+                        $imfields[] = $field->name;
+                    }
+                }
+                //If there are no imagefields, we can quit the work
+                if (count($imfields) < 1)
+                    return;
+
                 // raw image variation name
                 $variationName = $array[1];
                 #echo "<p>" . $variationName;
@@ -121,23 +134,24 @@ class TextformatterSrcset extends Textformatter implements Module
                     #var_dump($cutsizes);
                     #var_dump($this->cutdata);
                 }
+
                 // first check if a pageimagename corresponds to $variationName,
                 // second check all pageimagevariations for $variationName
                 // if the pages does not have images, exit
-                if (!$page->images)
-                    return;
-                foreach ($page->images as $imvar) {
-                    #$pagebilder[$page->id][++$i][] = $imvar->name;
-                    if ($variationName == $imvar->name) {
-                        $parent = $item = $imvar;
-                        break;
-                    } else {
-                        foreach ($imvar->getVariations() as $var) {
-                            #$pagebilder[$page->id][$i][] = $var->name;
-                            if ($variationName == $var->name) {
-                                $item = $var;
-                                $parent = $item->getOriginal();
-                                break 2;
+                foreach ($imfields as $field) {
+                    foreach ($page->{$field} as $imvar) {
+                        #$pagebilder[$page->id][++$i][] = $imvar->name;
+                        if ($variationName == $imvar->name) {
+                            $parent = $item = $imvar;
+                            break;
+                        } else {
+                            foreach ($imvar->getVariations() as $var) {
+                                #$pagebilder[$page->id][$i][] = $var->name;
+                                if ($variationName == $var->name) {
+                                    $item = $var;
+                                    $parent = $item->getOriginal();
+                                    break 2;
+                                }
                             }
                         }
                     }
@@ -216,7 +230,7 @@ class TextformatterSrcset extends Textformatter implements Module
 
             $src = $meta['source'];
 
-            if ($this->lqp OR $this->small_source) {
+            if ($this->lqp or $this->small_source) {
                 //Should we use the smallest image from the sizes?
                 if ($this->small_source && !empty($sizes)) {
                     $src_image = $image->width($sizes[0], $this->options);
@@ -322,7 +336,7 @@ class TextformatterSrcset extends Textformatter implements Module
                 $wh_attr = " width='{$meta['width']}' height='{$tmp_height}'";
             }
 
-            if ($meta['pw_align'] != "" OR $this->class != "") {
+            if ($meta['pw_align'] != "" or $this->class != "") {
                 $class = " class='";
                 if ($meta['pw_align'] != "")
                     $class .= " {$meta['pw_align']} ";
