@@ -168,7 +168,7 @@ class TextformatterSrcset extends Textformatter implements Module
                 #var_dump($item);
                 #var_dump($item->getOriginal());
                 if ($this->iptc) {
-                    //Get copyright-information from IPTC-Tags and add them to the title
+                    //Get copyright information from IPTC-tags and add them to the title
                     getimagesize($parent->filename, $info);
                     $data = [];
 
@@ -209,10 +209,7 @@ class TextformatterSrcset extends Textformatter implements Module
                     }
                 }
 
-
-                // basename of image.
-
-
+                $title = $meta['quelle'] ? "title='{$meta['quelle']}'" : "";
                 $meta['width'] = $item->width();
                 $meta['height'] = $item->height();
                 $image = $item;
@@ -358,13 +355,13 @@ class TextformatterSrcset extends Textformatter implements Module
                             $new .= "<source {$attribute}srcset='" . ($this->dpr ? $med->dpr : $med->src) . "' type='$med->type'>";
                     }
 
-                    $new .= "<img {$attribute}src='{$src}' {$wh_attr} {$alt} title='{$meta['quelle']}' {$class}/>";
+                    $new .= "<img {$attribute}src='{$src}' {$wh_attr} {$alt}{$title} {$class}/>";
                     $new .= "</picture>";
                 }
                 if ($this->srcmethod == 'srcset') {
                     if ($this->dpr)
                         $ds = '';
-                    $new = "<img {$attribute}srcset='{$srcset}' {$attribute}src='{$src}'{$ds}{$wh_attr}{$class} {$alt} title='{$meta['quelle']}'>";
+                    $new = "<img {$attribute}srcset='{$srcset}' {$attribute}src='{$src}'{$ds}{$wh_attr}{$class} {$alt}{$title}>";
                 }
 
 
@@ -404,11 +401,11 @@ class TextformatterSrcset extends Textformatter implements Module
                     }
 
 
-                    $new .= "<img {$attribute}src='{$src}' {$wh_attr} {$alt} title='{$meta['quelle']}' {$class}/>";
+                    $new .= "<img {$attribute}src='{$src}' {$wh_attr} {$alt}{$title} {$class}/>";
                     $new .= "</picture>";
                 }
                 if ($this->srcmethod == 'srcset') {
-                    $new = "<img {$attribute}srcset='{$srcset}' {$attribute}src='{$src}'{$wh_attr}{$class} {$alt} title='{$meta['quelle']}'>";
+                    $new = "<img {$attribute}srcset='{$srcset}' {$attribute}src='{$src}'{$wh_attr}{$class} {$alt}{$title}>";
                 }
                 #$new = $original;
 
