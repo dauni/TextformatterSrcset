@@ -33,6 +33,9 @@ class TextformatterSrcset extends Textformatter implements Module
 
 
     public function formatValue(Page $page, Field $field, &$str) {
+
+
+
         //Get all image tags from the $str and place them in $images
         if (!preg_match_all('/<img[^>]+>/i', $str, $images)) return;
         #echo "Bilder: "; var_dump($images);
@@ -111,7 +114,7 @@ class TextformatterSrcset extends Textformatter implements Module
                     $page = $this->pages->get($meta['id']);
 
                 //If there are more than one imagefield, or the imagefield-name is not "images"
-                foreach ($page->fields as $field) {
+                foreach ($page->getFields() as $field) {
                     if ($field->type == 'FieldtypeImage') {
                         $imfields[] = $field->name;
                     }
@@ -143,6 +146,7 @@ class TextformatterSrcset extends Textformatter implements Module
                 // second check all pageimagevariations for $variationName
                 // if the pages does not have images, exit
                 foreach ($imfields as $field) {
+                    if($page->{$field})
                     foreach ($page->{$field} as $imvar) {
                         #$pagebilder[$page->id][++$i][] = $imvar->name;
                         if ($variationName == $imvar->name) {
