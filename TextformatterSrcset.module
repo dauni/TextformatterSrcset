@@ -31,6 +31,7 @@ class TextformatterSrcset extends Textformatter implements Module
     }
 
 
+
     public function formatValue(Page $page, Field $field, &$str) {
         //Get all image tags from the $str and place them in $images
         if (!preg_match_all('/<img[^>]+>/i', $str, $images)) return;
@@ -83,28 +84,28 @@ class TextformatterSrcset extends Textformatter implements Module
             if (strpos($original, $fileLocation)) {
                 #var_dump($original);
                 //Find source image
-                preg_match_all('/src=["|\'](.*?)["|\']/i', $original, $array);
+                preg_match_all('/src=["|\'](.*?)["|\']/i', $original, $immatches);
                 #echo "Bilder: <pre>";
-                #var_dump($array);
+                #var_dump($immatches);
 
-                if (!$array[1]) continue;
-                #if (!is_file($array[1][0])) break;
-                $meta['source'] = $array[1][0]; // original
+                if (!$immatches[1]) continue;
+                #if (!is_file($immatches[1][0])) break;
+                $meta['source'] = $immatches[1][0]; // original
 
                 // ProcessWire alignment done with a class
-                preg_match_all('/class="(.*?)"/i', $original, $array);
-                #var_dump($array);
-                $meta['pw_align'] = isset($array[1][0]) ? $array[1][0] : null; // original
+                preg_match_all('/class="(.*?)"/i', $original, $immatches);
+                #var_dump($immatches);
+                $meta['pw_align'] = isset($immatches[1][0]) ? $immatches[1][0] : null; // original
 
                 //Get alt tag if it exists
-                preg_match_all('/alt="(.*?)"/i', $original, $array);
-                $meta['alt'] = isset($array[1][0]) ? $array[1][0] : null;
+                preg_match_all('/alt="(.*?)"/i', $original, $immatches);
+                $meta['alt'] = isset($immatches[1][0]) ? $immatches[1][0] : null;
 
                 // example: 1023/image-name.100x100.jpg
                 $string = str_replace($fileLocation, "", $meta['source']);
-                $array = explode("/", $string);
+                $immatches = explode("/", $string);
                 // id of page where where image belongs to
-                $meta['id'] = $array[0];
+                $meta['id'] = $immatches[0];
                 // refering to to page where the image lives - if it is not the current page.
                 if ($meta['id'] != $page->id)
                     $page = $this->pages->get($meta['id']);
@@ -120,8 +121,10 @@ class TextformatterSrcset extends Textformatter implements Module
                     return;
 
                 // raw image variation name
-                $variationName = $array[1];
+                $variationName = $immatches[1];
                 #echo "<p>" . $variationName;
+
+                //If there is a cropped image, get the crop coordinates
                 if (strpos($variationName, 'crop') !== false) {
                     $tmp = explode('.', $variationName);
                     $cutsizes = explode('-', $tmp[1]);
@@ -254,7 +257,7 @@ class TextformatterSrcset extends Textformatter implements Module
                 foreach ($sizes as $num => $size) {
                     if ($image) {
                         if ($image->width < $size) {
-                            //Use the original file for variation that becomes bigger as the acutal image
+                            //Use the original file for variation that becomes bigger as the actual image
                             if (isset($this->cutdata->width)) {
                                 if ($this->cutdata->width <= $size) {
                                     if ($this->cutdata->x > $this->cutdata->width)
