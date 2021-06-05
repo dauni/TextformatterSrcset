@@ -134,6 +134,7 @@ class TextformatterSrcset extends Textformatter implements Module
                 // if the pages does not have images, exit
                 foreach ($imfields as $field) {
                     foreach ($page->{$field} as $imvar) {
+                    if(gettype($imvar) ==='string') throw new WireException(__("You have set the formatted value to automatic, which returns a string. For this module to work, you have to chose array of elements"));
                         #$pagebilder[$page->id][++$i][] = $imvar->name;
                         if ($variationName == $imvar->name) {
                             $parent = $item = $imvar;
