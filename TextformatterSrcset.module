@@ -80,7 +80,10 @@ class TextformatterSrcset extends Textformatter implements Module
     }
 
     public function formatValue(Page $page, Field $field, &$str) {
-        $page->setOutputFormatting(false);
+        #$page->setOutputFormatting(false);
+        #$stateBefore = $page->of();
+        #$page->of(false);
+
 
         //Get all image tags from the $str and place them in $images
         if (!preg_match_all('/<img[^>]+>/i', $str, $images)) return;
@@ -481,6 +484,7 @@ class TextformatterSrcset extends Textformatter implements Module
 
         //Replace all Image tags with our new ones and return.
         $str = str_replace($images[0], $matches, $str) . $strappend;
+        #$page->of($stateBefore);
         return;
     }
 
