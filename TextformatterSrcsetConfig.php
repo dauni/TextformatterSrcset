@@ -131,7 +131,7 @@ class TextformatterSrcsetConfig extends ModuleConfig
         $f = $this->modules->get('InputfieldCheckbox');
         $f->name = 'll_attr';
         $f->columnWidth = 34;
-        $f->label = $this->_('Use Lazysizes 5.2.0 JS-plugin');
+        $f->label = $this->_('Use Lazysizes 5.3.1 JS-plugin');
         $f->description = $this->_('Activate to add Lazy loading. Activates also data* attributes. Includes lazysizes.min.js. Adds the class "lazyload"');
         $inputfields->add($f);
 
