@@ -142,15 +142,22 @@ class TextformatterSrcsetConfig extends ModuleConfig
 
         $f = $this->modules->get('InputfieldCheckbox');
         $f->name = 'iptc';
-        $f->columnWidth = 50;
+        $f->columnWidth = 30;
         $f->label = $this->_('IPTC-Data');
         $f->description = $this->_('Try to get copyright information from IPTC-Tags and add them as title (in future as Watermark?).');
         $iptc->append($f);
         #$inputfields->add($f);
 
+        $f = $this->modules->get('InputfieldCheckbox');
+        $f->name = 'dowatermark';
+        $f->columnWidth = 30;
+        $f->label = $this->_('Alpha ... Watermark');
+        $f->description = $this->_('Alpha ... Write the copyright information as Watermark');
+        $iptc->append($f);
+
         $f = $this->modules->get('InputfieldText');
         $f->name = 'imgtitle';
-        $f->columnWidth = 50;
+        $f->columnWidth = 30;
         $f->label = $this->_('Default Title');
         $f->description = $this->_('If no Copyright information found, use this title');
         $iptc->append($f);
@@ -167,8 +174,8 @@ class TextformatterSrcsetConfig extends ModuleConfig
         return array(
             // settings
             "srcmethod" => "picture", //Use art direction with picture tag
-            "resolutions" => "350,700", //Only numbers, seperated by comma
-            "medias" => "799,800", //Only numbers, seperated by comma
+            "resolutions" => "350,700", //Only numbers, separated by comma
+            "medias" => "799,800", //Only numbers, separated by comma
             "borders" => "max-width,min-width", //Only numbers, seperated by comma
             "sizes" => "auto", //What to put into the sizes attribute
             "retina" => true, //Create an image double the largest image size for HiDPI devices
@@ -177,8 +184,9 @@ class TextformatterSrcsetConfig extends ModuleConfig
             "lqp" => true, //Use a low quality placeholder for the src attribute
             "small_source" => false, //Use the smallest size as a source image instead of a scaled down image
             "class" => '', //Classes added to the image
-            "ls_attr" => false, //Inlcude automatically lazysizes.js and add corresponding data-attributes
-            "wp_attr" => false //Generate WEBP-Version (Since processwire 3.0.132)
+            "ls_attr" => false, //Include automatically lazysizes.js and add corresponding data-attributes
+            "wp_attr" => false, //Generate WEBP-Version (Since processwire 3.0.132)
+            "watermark"=>false //Generate watermarks
         );
     }
 }

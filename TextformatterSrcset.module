@@ -18,13 +18,13 @@ class TextformatterSrcset extends Textformatter implements Module
     private $options = array();
     private $options_low = array();
     private $cutdata;
-    private $dowatermark = true;
+    #private $dowatermark = true;
 
     public static function getModuleInfo() {
 
         return array(
             'title' => 'Srcset Image Text Formatter',
-            'version' => 105,
+            'version' => 107,
             'summary' => "Adds the srcset to images within a textarea",
             'author' => 'Conclurer GbR, Daniel',
             'autoload' => false,
