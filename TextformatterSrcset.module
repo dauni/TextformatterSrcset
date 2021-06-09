@@ -80,7 +80,7 @@ class TextformatterSrcset extends Textformatter implements Module
     }
 
     public function formatValue(Page $page, Field $field, &$str) {
-        #$page->setOutputFormatting(false);
+        $page->setOutputFormatting(false);
         #$stateBefore = $page->of();
         #$page->of(false);
 
@@ -521,11 +521,15 @@ class TextformatterSrcset extends Textformatter implements Module
 
     private function checktrans($image) {
         if ($this->trans) {
-            $img = new \Imagick();
-            $img->readImage($image);
-            // 0 = No transparency
-            // 1 = Has transparency
-            $hasTransparency = $img->getImageAlphaChannel();
+            if (extension_loaded('imagick')) {
+                $img = new \Imagick();
+                $img->readImage($image);
+                // 0 = No transparency
+                // 1 = Has transparency
+                $hasTransparency = $img->getImageAlphaChannel();
+            } else {
+                $hasTransparency = $this->png_has_transparency($image);
+            }
             if ($hasTransparency) {
                 #echo "The image has transparency :)";
                 return false;
@@ -535,6 +539,20 @@ class TextformatterSrcset extends Textformatter implements Module
             }
         }
         return true;
+    }
+
+    private function png_has_transparency($filename) {
+        if (strlen($filename) == 0 || !file_exists($filename))
+            return false;
+
+        if (ord(file_get_contents($filename, false, null, 25, 1)) & 4)
+            return true;
+
+        $contents = file_get_contents($filename);
+        if (stripos($contents, 'PLTE') !== false && stripos($contents, 'tRNS') !== false)
+            return true;
+
+        return false;
     }
 
     private function get_croparea(object $image, object $parent, int $size) {
