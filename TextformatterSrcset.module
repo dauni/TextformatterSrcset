@@ -325,9 +325,9 @@ class TextformatterSrcset extends Textformatter implements Module
                                         $this->cutdata->x -= $this->cutdata->width * 0.25;
                                     if ($this->cutdata->y > $this->cutdata->height)
                                         $this->cutdata->y -= $this->cutdata->height * 0.25;
-                                    $new_image = $parent->crop($this->cutdata->x, $this->cutdata->y, $this->cutdata->width * 1.5, $this->cutdata->height * 1.5)->width($size, $this->options)->watermark($meta['quelle']);
+                                    $new_image = ($this->dowatermark ? $parent->crop($this->cutdata->x, $this->cutdata->y, $this->cutdata->width * 1.5, $this->cutdata->height * 1.5)->width($size, $this->options)->watermark($meta['quelle']) : $parent->crop($this->cutdata->x, $this->cutdata->y, $this->cutdata->width * 1.5, $this->cutdata->height * 1.5)->width($size, $this->options));
                                 } elseif ($this->cutdata->width >= $size)
-                                    $new_image = $parent->crop($this->cutdata->x, $this->cutdata->y, $this->cutdata->width, $this->cutdata->height)->width($size, $this->options)->watermark($meta['quelle']);
+                                    $new_image = ($this->dowatermark ? $parent->crop($this->cutdata->x, $this->cutdata->y, $this->cutdata->width, $this->cutdata->height)->width($size, $this->options)->watermark($meta['quelle']) : $parent->crop($this->cutdata->x, $this->cutdata->y, $this->cutdata->width, $this->cutdata->height)->width($size, $this->options));
                             } else {
                                 $new_image = ($this->dowatermark ? $parent->width($size, $this->options)->watermark($meta['quelle']) : $parent->width($size, $this->options));
                                 #$new_image = $parent->width($size, $this->options);
